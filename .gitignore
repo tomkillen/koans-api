@@ -1,0 +1,8 @@
+# Ignore local bin since binaries should not be stored in Git
+bin/*
+
+# Ignore node_modules
+node_modules
+
+# Don't ignore .keep files to preserve project structure
+!.keep
