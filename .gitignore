@@ -1,8 +1,21 @@
 # Ignore local bin since binaries should not be stored in Git
 bin/*
 
-# Ignore node_modules
-node_modules
+# Sometimes we need secrets or sensitive data even during development
+# and if these need to be cached locally, I keep them in a folder named 
+# `./secrets` which MUST be excluded from version control.
+# Where possible, secrets would be fetched at runtime but often some
+# sensitive data needs to be injected
+# e.g. provide the vault secrets token that bootstraps other secrets
+secrets/*
 
-# Don't ignore .keep files to preserve project structure
+# Ignore local environment, working files, build artefacts, logs, etc
+node_modules
+.env
+
+# Don't ignore .keep files
+# Use `.keep` files to preserve project structure in git
+# e.g. we want the `bin` folder to exist in version control so the project
+# structure is preserved, but we do NOT want the contents of `bin` to be
+# in version control, so create `./bin/.keep` to make git aware of the folder
 !.keep

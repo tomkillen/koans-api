@@ -9,7 +9,7 @@ A REST API designed to promote relaxation, boost self-esteem, improve productivi
 # if make is available, it is preferred to use make since the make command will install a pinned
 # version of docker compose to ./bin/docker-compose, which aids future maintenance by using
 # pinned tool versions.
-make up
+make start
 
 # OR, if make is not available, or if you don't want to install a copy of docker-compose to
 # `./bin`, you can run the app directly using docker
@@ -64,6 +64,14 @@ TODO - write detailed run instructions
 
 Some folders are intended to be empty in version control, e.g. the contents of `./bin` should be excluded from version control. But to maintain & enforce the project structure, I create `.keep` files which are included in version control.
 
-## Reference
+## Quick reference
 
-TODO - write some quick reference that describes using this project
+### Makefile
+
+- `make start` will setup the local environment then build & run the app
+- `make stop` will stop the running app
+- `make destroy` will stop & delete the running app (e.g. remove docker containers)
+- `make test` will execute unit & integration tests
+- `make e2e` will execute e2e test suite
+
+
