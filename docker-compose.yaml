@@ -2,7 +2,17 @@ services:
 
   # Mongo DB to provide persistent data storage
   mongo:
-    image: mongo:5.0.27
+    # Commentary:
+    # Pinning a version for development builds aids the long term maintenance of the
+    # project. If we need to work on this API again in the distant future, we don't need
+    # to be as concerned with breaking changes in our dependencies.
+    # Arguably only MAJOR.MINOR sho
+    # In a production build I would usually pin by sha256 digest, perhaps using renovatebot
+    # to largely automate replacing version pins with digest pins.
+    # Generally it's better practice to ignore the PATCH version and only pin by MAJOR.MINOR
+    # since we want to receive security patches and updates to the PATCH version should be
+    # non-breaking.
+    image: mongo:5.0
     restart: unless-stopped
     healthcheck: 
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
@@ -11,17 +21,48 @@ services:
       retries: 3
       start_period: 10s
     environment:
+      # Commentary:
+      # Objective 1 - Allow sensitive data to be injected at buildtime
+      # Objective 2 - Allow the project to run "out of the box" without additional setup
+      # Solution - default the username/password to root/root for local development but
+      #            allow these values to be overriden by injecting secrets.
+      # Doing this with environment variables (as I have done here) has the downside that
+      # secret values might be included in logs from build pipelines if those pipelines
+      # aren't suppressing secrets, so an even better solution could be to leverage docker
+      # secrets https://docs.docker.com/engine/swarm/secrets/
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-root}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-root}
     volumes:
-      - ./mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    # Commentary:
+    # Include script to initialize Mongo with a "koans" db and a user that has read-write 
+    # access to the "koans" db only so we aren't using root mongo credentials in the server.
+    # In a production-ready service, it might be better to initialize the mongo db using 
+    # an init container but for local development we can use mongo's support of init scripts
+    - ./mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    # For persistent database storage we could map a project directory to the mongo service
 
+  # Commentary:
   # It can be useful to include mongo-express to aid development, unless you prefer to use compass
+  # Note that this would never be included in production.
+  # Generally I would have development support services, such as mongo-express, outside of the
+  # main development docker-compose stack. Typically I would create it's own docker compose file
+  # at `scripts/mongo-express-docker-compose.yaml` and in the Makefile I would add a command that
+  # enables launching this service when required, e.g. `make mongo-express` to launch the service
+  # and bridge the docker network.
+  # The reason why I would normally separate it like that is to improve iteration time and reduce 
+  # CPU load when running the development stack and improve iteration time by reducing the amount
+  # of work the CPU & network needs to do to run the development stack.
   mongo-express:
+    # Commentary:
+    # mongo-express launches faster than mongo, which isn't an important problem but it results
+    # in some errors being logged as mongo-express attempts and fails to connect a couple of times
+    # and I don't like seeing extraneous errors in my logs even if they are ignorable errors
+    # so let's make the dependency explicit so that docker waits for mongo to be healthy before
+    # starting mongo-express
     depends_on:
       mongo:
         condition: service_healthy
-    image: mongo-express
+    image: mongo-express:1.0
     restart: unless-stopped
     ports:
     - 8081:8081
