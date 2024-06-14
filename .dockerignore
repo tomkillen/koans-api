@@ -1,0 +1,6 @@
+# Using .dockerignore as a whitelist helps prevent accidentally adding sensitive data or unintentional bloat
+*
+
+# Don't ignore these files!
+!.dockeringore
+!Dockerfile

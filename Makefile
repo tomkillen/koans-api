@@ -8,6 +8,25 @@
 # setting the STAGE variable before invoking a make command, e.g. `STAGE=dev make start`
 STAGE ?= local
 
+# VERSION should be updated whenever we deploy
+# Follow semantic versioning conventions MAJOR.MINOR.PATCH
+# https://semver.org/
+VERSION ?= 0.1.0
+
+# IMG defines what how we tag our image and which registry we push it to
+ifeq ($(STAGE), prod)
+IMG ?= my-private-registry.doesntexist/koans-api:$(VERSION)
+else
+IMG ?= my-private-registry.doesntexist/koans-api:$(VERSION)-$(STAGE)
+endif
+
+DOCKER_BUILD_FLAGS =
+ifneq ($(STAGE), prod)
+ifneq ($(STAGE), qa)
+DOCKER_BUILD_FLAGS = --no-cache
+endif
+endif
+
 # Commentary:
 # I like to use Makefiles as a highly portable automation tool.
 # For most projects, I like to have a set of standard make commands, as applicable:
@@ -46,19 +65,19 @@ STAGE ?= local
 
 # Do everything required to setup & run the app, including initializing the current working environment
 .PHONY: start
-start: setup-env docker-up
+start: setup-env docker-compose-up
 
 # Similar to start, but more light-weight. Assume the environment is already setup
 .PHONY: run
-run: docker-up
+run: docker-compose-up
 
 # Stop the app
 .PHONY: stop
-stop: docker-stop
+stop: docker-compose-stop
 
 # Stop & destroy the running instance
 .PHONY: destroy
-destroy: docker-down
+destroy: docker-compose-down
 
 # Destroy & then start the app for a fresh debugging session, useful for slightly quicker iteration
 .PHONY: restart
@@ -79,28 +98,80 @@ clean-all: clean clean-bin clean-env
 lint: ; # TODO
 
 .PHONY: test
-test: ; # TODO
+test:
+	npm test
 
 .PHONY: e2e
 e2e: ; # TODO
 
-### Control
+### Docker
+
+# Support docker-compose in a self-contained fashion by using the pinned version of docker-compose
 
 # Create & start the stack
-.PHONY: docker-up
-docker-up: docker-compose
+.PHONY: docker-compose-up
+docker-compose-up: docker-compose
 	$(DOCKER_COMPOSE) up
 
+# Build the stack
+.PHONY: docker-compose-build
+docker-compose-build:
+	$(DOCKER_COMPOSE) build
+
+# Build the stack without cache
+.PHONY: docker-compose-build-nocache
+docker-compose-build-nocache:
+	$(DOCKER_COMPOSE) build --no-cache
+
+# Start the stack
+.PHONY: docker-compose-start
+docker-compose-start: docker-compose
+	$(DOCKER_COMPOSE) start
+
 # Stops the stack
-.PHONY: docker-stop
-docker-stop: docker-compose
+.PHONY: docker-compose-stop
+docker-compose-stop: docker-compose
 	$(DOCKER_COMPOSE) stop
 
 # Stop & destroy the stack
-.PHONY: docker-down
-docker-down: docker-compose
+.PHONY: docker-compose-down
+docker-compose-down: docker-compose
 	$(DOCKER_COMPOSE) down
 
+# Build a new docker image
+.PHONY: docker-build
+docker-build: check-stage-env test
+	docker build $(DOCKER_BUILD_FLAGS) \
+		--progress=plain \
+		-t $(IMG) \
+		. 
+
+# Push the built image
+# Note that this command will actually fail since I intentionally set the image registry
+# to a fake registry ("my-private-registry.doesntexist") but you can see how this works
+.PHONY: docker-push
+docker-push:
+	docker push $(IMG)
+
+# For published images, it is usually good practice to support several architectures
+# which we can do using buildx, creating a virtual build machine as a docker container
+# Note that this command will actually fail since I intentionally set the image registry
+# to a fake registry ("my-private-registry.doesntexist") but you can see how this works
+.PHONY: docker-publish
+docker-publish: check-stage-env test
+	docker buildx create \
+		--name build-multiplatform \
+		--driver docker-container \
+		--bootstrap \
+		--use
+	docker buildx build $(DOCKER_BUILD_FLAGS) \
+		--platform linux/arm64 linux/amd64 \
+		--progress=plain \
+		-t $(IMG) \
+		. \
+		--push \ 
+		|| echo "Failed to build & publish docker image using buildx"
+	docker buildx rm build-multiplatform
 
 ### Setup & codegen
 
@@ -114,8 +185,21 @@ clean-env:
 	find . -name ".env*" -not -name "*.template" -maxdepth 1 -delete
 
 # Initialize .env file if it doesn't already exist
+# Don't fail if no template for the stage exists since
+# these values might be provided by other means
 .env:
-	cp .env.$(STAGE).template .env
+	cp .env.$(STAGE).template .env || true
+
+# Utility that resets the environment if we are targeting a non-development stages
+.PHONY: check-stage-env
+check-stage-env:
+ifneq ($(STAGE), local)
+ifneq ($(STAGE), dev)
+# Since we are targeting a non-development stage, ensure state is reset
+	$(MAKE) clean-env
+endif
+endif
+	$(MAKE) setup-env
 
 ### Tools
 
