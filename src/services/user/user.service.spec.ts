@@ -202,16 +202,16 @@ describe('user service', () => {
         email: 'willbedeleted@example.com',
         password: 'password'
       });
-      expect(id1).toBeDefined();
-      expect(typeof id1).toBe('string');
+      expect(id2).toBeDefined();
+      expect(typeof id2).toBe('string');
 
       const id3 = await UserService.createUser({
         username: 'Will Be Deleted',
         email: 'willbedeleted@example.com',
         password: 'password'
       });
-      expect(id1).toBeDefined();
-      expect(typeof id1).toBe('string');
+      expect(id3).toBeDefined();
+      expect(typeof id3).toBe('string');
 
       expect(UserService.deleteUser({ id: JSON.stringify({'_id':{'$in': [ id1, id2, id3 ] }}) })).rejects.toThrowError();
     });
