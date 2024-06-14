@@ -1,33 +1,65 @@
-import { afterAll, beforeAll, describe, expect, jest, test } from "@jest/globals";
-import { MongoClient, Db } from 'mongodb';
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
+import mongoose, { Mongoose } from "mongoose";
 import UserService, { CreateUserRequestDTO } from "./user.service";
 
 describe('user service', () => {
-  let connection: MongoClient | null = null;
-  let db: Db | null = null;
+  let mongooseClient: Mongoose | null = null;  
+  let userService: UserService | null = null;
 
   beforeAll(async () => {
-    connection = await MongoClient.connect((global as any).__MONGO_URI__ as string);
-    db = await connection.db();
+    // @shelf/jest-mongodb creates an in-memory mongo instance and injects the URI
+    mongooseClient = await mongoose.connect((global as any).__MONGO_URI__ as string);
+    userService = new UserService(mongooseClient);
+    await userService.prepare();
   });
 
   afterAll(async () => {
-    await connection?.close();
+    try {
+      await mongooseClient?.disconnect();
+    } finally {
+      userService = null;
+    }
   });
 
   describe('create user', () => {
     test('can create valid new user', async () => {
-      const bobId = await UserService.createUser({
+      expect(userService).toBeInstanceOf(UserService);
+      const bobId = await userService!.createUser({
         username: 'bob',
         email: 'bob@example.com',
         password: 'password'
       });
       expect(bobId).toBeDefined();
       expect(typeof bobId).toBe('string');
+
+      // ensure we can get bob back again using his id
+      // and that his details match
+      const getBobAgain = await userService!.getUser(bobId);
+      expect(getBobAgain).toBeDefined();
+      expect(getBobAgain?.username).toBe('bob');
+      expect(getBobAgain?.email).toBe('bob@example.com');
+
+      // ensure we can authenticate with bob using his password
+      const getBobWithPassword = await userService!.getUserCheckPassword({
+        username: 'bob',
+      }, 'password');
+      expect(getBobWithPassword).toBeDefined();
+      expect(getBobWithPassword?.username).toBe('bob');
+      expect(getBobWithPassword?.email).toBe('bob@example.com');
+
+      // ensure using the incorrect password fails
+      // and we don't get bob if we use the wrong password
+      expect(userService!.getUserCheckPassword({
+        username: 'bob',
+      }, 'incorrect password')).rejects.toThrowError();
     });
 
     test('users cannot be empty', () => {
-      expect(UserService.createUser({
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.createUser({
         username: '',
         email: '',
         password: ''
@@ -35,19 +67,23 @@ describe('user service', () => {
     });
 
     test('users cannot be null', () => {
-      expect(UserService.createUser(null as any as CreateUserRequestDTO)).rejects.toThrowError();
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.createUser(null as any as CreateUserRequestDTO)).rejects.toThrowError();
     });
 
     test('users cannot be undefined', () => {
-      expect(UserService.createUser(undefined as any as CreateUserRequestDTO)).rejects.toThrowError();
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.createUser(undefined as any as CreateUserRequestDTO)).rejects.toThrowError();
     });
 
     test('users cannot be a string', () => {
-      expect(UserService.createUser('invalid data type' as any as CreateUserRequestDTO)).rejects.toThrowError();
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.createUser('invalid data type' as any as CreateUserRequestDTO)).rejects.toThrowError();
     });
 
     test('usernames can include all kinds of weird characters, because why not', () => {
-      expect(UserService.createUser({
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.createUser({
         username: 'asodmate12 4121 12!! %%% &()! ',
         email: 'strange_person@example.com',
         password: ''
@@ -55,7 +91,8 @@ describe('user service', () => {
     });
 
     test('usernames can be chinese', () => {
-      expect(UserService.createUser({
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.createUser({
         username: '跑表上还剩五十八秒',
         email: 'chineseperson@example.com',
         password: ''
@@ -63,7 +100,8 @@ describe('user service', () => {
     });
 
     test('usernames can include spaces', async () => {
-      const bobId = await UserService.createUser({
+      expect(userService).toBeInstanceOf(UserService);
+      const bobId = await userService!.createUser({
         username: 'bob the builder',
         email: 'bobthebuilder@example.com',
         password: 'password'
@@ -73,7 +111,8 @@ describe('user service', () => {
     });
 
     test('usernames can include capitals', async () => {
-      const bobId = await UserService.createUser({
+      expect(userService).toBeInstanceOf(UserService);
+      const bobId = await userService!.createUser({
         username: 'Bob Smith',
         email: 'bobsmith@example.com',
         password: 'password'
@@ -83,7 +122,8 @@ describe('user service', () => {
     });
 
     test('usernames are rejected if they differ by capitalization only', async () => {
-      expect(UserService.createUser({
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.createUser({
         username: 'bob smith',
         email: 'bobsmithlowercase@example.com',
         password: 'password'
@@ -91,15 +131,44 @@ describe('user service', () => {
     });
 
     test('emails are rejected if they only differ by capitalization', async () => {
-      expect(UserService.createUser({
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.createUser({
         username: 'Bob Smith',
         email: 'BOBSMITH@example.com',
         password: 'password'
       })).rejects.toThrowError();
     });
 
+    test('emails must be valid (1)', async () => {
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.createUser({
+        username: 'Bob Smith',
+        email: 'notan email',
+        password: 'password'
+      })).rejects.toThrowError();
+    });
+
+    test('emails must be valid (2)', async () => {
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.createUser({
+        username: 'Bob Smith',
+        email: 'notan@an@email.com',
+        password: 'password'
+      })).rejects.toThrowError();
+    });
+
+    test('emails must be valid (3)', async () => {
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.createUser({
+        username: 'Bob Smith',
+        email: 'notan @email.com',
+        password: 'password'
+      })).rejects.toThrowError();
+    });
+
     test('users require a username', () => {
-      expect(UserService.createUser({
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.createUser({
         username: '',
         email: 'invalid@example.com',
         password: 'password'
@@ -107,7 +176,8 @@ describe('user service', () => {
     });
 
     test('users require an email', () => {
-      expect(UserService.createUser({
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.createUser({
         username: 'invalid_user1',
         email: '',
         password: 'password'
@@ -115,7 +185,8 @@ describe('user service', () => {
     });
 
     test('users require an password', () => {
-      expect(UserService.createUser({
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.createUser({
         username: 'invalid_user2',
         email: 'invalid2@example.com',
         password: ''
@@ -125,7 +196,8 @@ describe('user service', () => {
 
   describe('delete user', () => {
     test('we can delete a user by id', async () => {
-      const deleteId = await UserService.createUser({
+      expect(userService).toBeInstanceOf(UserService);
+      const deleteId = await userService!.createUser({
         username: 'Will Be Deleted',
         email: 'willbedeleted@example.com',
         password: 'password'
@@ -133,11 +205,12 @@ describe('user service', () => {
       expect(deleteId).toBeDefined();
       expect(typeof deleteId).toBe('string');
 
-      expect(UserService.deleteUser({ id: deleteId })).resolves.toHaveBeenCalled();
+      await userService!.deleteUser(deleteId);
     });
 
     test('we can delete a user by email', async () => {
-      const deleteId = await UserService.createUser({
+      expect(userService).toBeInstanceOf(UserService);
+      const deleteId = await userService!.createUser({
         username: 'Will Be Deleted',
         email: 'willbedeleted@example.com',
         password: 'password'
@@ -145,11 +218,12 @@ describe('user service', () => {
       expect(deleteId).toBeDefined();
       expect(typeof deleteId).toBe('string');
 
-      expect(UserService.deleteUser({ email: 'willbedeleted@example.com' })).resolves.toHaveBeenCalled();
+      await userService!.deleteUser({ email: 'willbedeleted@example.com' });
     });
 
     test('we can delete a user by username', async () => {
-      const deleteId = await UserService.createUser({
+      expect(userService).toBeInstanceOf(UserService);
+      const deleteId = await userService!.createUser({
         username: 'Will Be Deleted',
         email: 'willbedeleted@example.com',
         password: 'password'
@@ -157,63 +231,71 @@ describe('user service', () => {
       expect(deleteId).toBeDefined();
       expect(typeof deleteId).toBe('string');
 
-      expect(UserService.deleteUser({ username: 'Will Be Deleted' })).resolves.toHaveBeenCalled();
+      await userService!.deleteUser({ username: 'Will Be Deleted' });
     });
 
     test('we cannot delete unknown users', () => {
-      expect(UserService.deleteUser({ id: 'doesnt exist' })).rejects.toThrowError();
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.deleteUser('doesnt exist')).rejects.toThrowError();
     });
 
     test('we cannot delete empty ids', () => {
-      expect(UserService.deleteUser({ id: '' })).rejects.toThrowError();
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.deleteUser('')).rejects.toThrowError();
     });
 
     test('we cannot delete empty emails', () => {
-      expect(UserService.deleteUser({ email: '' })).rejects.toThrowError();
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.deleteUser({ email: '' })).rejects.toThrowError();
     });
 
     test('we cannot delete empty usernames', () => {
-      expect(UserService.deleteUser({ username: '' })).rejects.toThrowError();
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.deleteUser({ username: '' })).rejects.toThrowError();
     });
 
     test('we cannot delete null ids', () => {
-      expect(UserService.deleteUser({ id: null as any as string })).rejects.toThrowError();
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.deleteUser(null as any as string)).rejects.toThrowError();
     });
 
     test('we cannot delete undefined ids', () => {
-      expect(UserService.deleteUser({ id: undefined as any as string })).rejects.toThrowError();
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.deleteUser(undefined as any as string)).rejects.toThrowError();
     });
 
     test('we cannot delete ids that are objects', () => {
-      expect(UserService.deleteUser({ id: {} as any as string })).rejects.toThrowError();
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.deleteUser({} as any as string)).rejects.toThrowError();
     });
 
     test('we cannot inject malicious code into deletions', async () => {
-      const id1 = await UserService.createUser({
-        username: 'Will Be Deleted',
-        email: 'willbedeleted@example.com',
+      expect(userService).toBeInstanceOf(UserService);
+      const id1 = await userService!.createUser({
+        username: 'Wont Be Deleted 1',
+        email: 'willbedeleted1@example.com',
         password: 'password'
       });
       expect(id1).toBeDefined();
       expect(typeof id1).toBe('string');
 
-      const id2 = await UserService.createUser({
-        username: 'Will Be Deleted',
-        email: 'willbedeleted@example.com',
+      const id2 = await userService!.createUser({
+        username: 'Wont Be Deleted 2',
+        email: 'Wontbedeleted2@example.com',
         password: 'password'
       });
       expect(id2).toBeDefined();
       expect(typeof id2).toBe('string');
 
-      const id3 = await UserService.createUser({
-        username: 'Will Be Deleted',
-        email: 'willbedeleted@example.com',
+      const id3 = await userService!.createUser({
+        username: 'Wont Be Deleted 3',
+        email: 'Wontbedeleted3@example.com',
         password: 'password'
       });
       expect(id3).toBeDefined();
       expect(typeof id3).toBe('string');
 
-      expect(UserService.deleteUser({ id: JSON.stringify({'_id':{'$in': [ id1, id2, id3 ] }}) })).rejects.toThrowError();
+      expect(userService!.deleteUser(JSON.stringify({'_id':{'$in': [ id1, id2, id3 ] }}))).rejects.toThrowError();
     });
   });
 });
