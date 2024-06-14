@@ -165,4 +165,3 @@ Some folders are intended to be empty in version control, e.g. the contents of `
 Swagger UI available at <http://localhost/swagger>
 
 OpenAPI spec for v1 available at <http://localhost/v1/openapi.json> and <http://localhost/v1/openapi.yaml>
-
