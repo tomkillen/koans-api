@@ -10,11 +10,7 @@
 ##################################################################
 
 # NodeJS 22 build stage
-# It is nice to use slim images where possible, even for build stages
-# since this reduces the amount of resource consumption for the build
-# pipelines, but this is just one relatively minor consideration in
-# choosing the correct base image for our build stage.
-FROM node:22.3.0-bookworm-slim AS build
+FROM node:22.3.0 AS build
 WORKDIR /app
 
 # Our dependencies will not change frequently but our source code will
@@ -22,12 +18,19 @@ WORKDIR /app
 # opportunity to cache our dependencies, which can improve iteration time
 COPY package*.json ./
 
-# Install production dependencies only
-RUN npm ci --omit=dev
+# Dev dependencies required to execute tsc
+RUN npm ci
 
 # Now we install our source code & build our app
-COPY . /app
-RUN npm build
+COPY . .
+RUN npm run build
+
+# NodeJS 22 production stage without devDepencencies
+FROM node:22.3.0 AS production
+COPY --from=build /app/package*.json ./app/
+COPY --from=build /app/dist /app/dist
+WORKDIR /app
+RUN npm ci --omit=dev
 
 # There is an active and probably never-ending debate about what is 
 # the correct choice of runtime image.
@@ -54,7 +57,11 @@ RUN npm build
 # Of course these is never a single "correct" answer here and the needs
 # of the project & the team can change everything, and the preferred
 # base image is a moving target anyway as the ecosystem evolves.
+
+# Runtime stage
 FROM gcr.io/distroless/nodejs22-debian12:nonroot
-COPY --from=build /app /app
+# COPY --from=production /app/package.json ./app/
+COPY --from=production /app/dist /app/dist
+COPY --from=production /app/node_modules /app/node_modules
 WORKDIR /app
-CMD ["server"]
+CMD ["dist/index"]

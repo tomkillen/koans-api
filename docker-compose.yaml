@@ -1,4 +1,11 @@
 services:
+  # Koans API
+  app:
+    build:
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - 80:3000
 
   # Mongo DB to provide persistent data storage
   mongo:

@@ -2,11 +2,12 @@
   "name": "koans",
   "version": "0.1.0",
   "description": "A REST API designed to promote relaxation, boost self-esteem, improve productivity, enhance physical health, and foster social connections.",
-  "main": "dist/server.js",
+  "main": "dist/index.js",
   "private": true,
   "type": "module",
   "scripts": {
     "start:dev": "ts-node src/index",
+    "build": "tsc",
     "lint": "eslint .",
     "test": "jest"
   },
