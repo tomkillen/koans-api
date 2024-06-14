@@ -3,6 +3,7 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { serve as serveSwaggerUi, setup as setupSwaggerUi } from 'swagger-ui-express';
 import logger from './utilities/logger';
+import apiRoutes from './api/api.routes';
 import Config from './config/Config';
 import swaggerJSDoc from 'swagger-jsdoc';
 
@@ -76,6 +77,9 @@ const Server = (config: Config) => {
       })),
     );
   };
+
+  // Add api routes
+  root.use(apiRoutes());
 
   // Catch-all not found
   root.all('*', (_, res) => {
