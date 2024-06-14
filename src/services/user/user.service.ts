@@ -38,7 +38,7 @@ export type GetUserResponseDTO = {
   created: string;
 };
 
-const UsersService = {
+const UserService = {
   /**
    * Creates a new user with the given username, email, & password
    * @param userData the user to be created
@@ -87,4 +87,4 @@ const UsersService = {
   },
 };
 
-export default UsersService;
+export default UserService;
