@@ -10,6 +10,7 @@ export default tseslint.config(
       '**/dist/**',
       // Ignore tool config files
       '*.config.js',
+      '*.cjs',
       // Ignore mongo init scripts
       'mongo/*.js',
     ],

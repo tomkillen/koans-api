@@ -95,7 +95,8 @@ clean-all: clean clean-bin clean-env
 ### Testing
 
 .PHONY: lint
-lint: ; # TODO
+lint:
+	npm run lint
 
 .PHONY: test
 test:
