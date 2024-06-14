@@ -1,6 +1,5 @@
-import { afterEach, beforeEach, describe, jest, test } from "@jest/globals";
+import { expect, afterEach, beforeEach, describe, jest, test } from "@jest/globals";
 import createConfig from "./createConfig";
-import expect from "expect";
 
 describe('test config/createConfig', () => {
   // createConfig reads from process.env so this is a workaround method of mocking it
