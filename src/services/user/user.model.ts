@@ -115,8 +115,7 @@ UserSchema.pre('save', async function(next) {
     try {
       // Use async hash and bcrypt can perform the hash on a background threadpool
       // which significantly mitigates the performance impact of hashing on the server
-      const hash = await bcrypt.hash(this.password, SaltRounds);
-      this.password = hash;
+      this.password = await bcrypt.hash(this.password, SaltRounds);
     } catch (err) {
       if (err instanceof Error) {
         return next(err);
@@ -132,8 +131,23 @@ UserSchema.pre('save', async function(next) {
   next();
 });
 
+// findByIdAndUpdate is equivalent to findOneAndUpdate({ _id: id } ...
+// so both findBy_AndUpdate are handled here
+UserSchema.pre( 'findOneAndUpdate', async function (next) {
+  const update = this.getUpdate();
+
+  if (update && 'password' in update) {
+    update['password'] = await bcrypt.hash(update.password, SaltRounds);
+  }
+  
+  next();
+});
+
 UserSchema.methods.comparePassword = function(testPassword: string): Promise<boolean> {
   return new Promise((resolve, reject) => {
+    if (this.isModified('password')) {
+      reject(new Error(`password not yet saved`));
+    }
     bcrypt.compare(testPassword, this.password, (err, same) => {
       if (err) {
         reject(err);

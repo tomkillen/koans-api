@@ -145,12 +145,15 @@ class UserService {
     // I happen to like non-nested tuples. I understand that nested tuples become a mess
     // but I personally find this more readable than if statements, so long as they are 
     // 1-deep & neatly arranged like this.
+    // You can disagree. But look at how neat & tidy this is when separated onto new lines.
     const user = await ((typeof userIdentity === 'string') 
       ? User.findById(stringToObjectId(userIdentity)) 
       : User.findOne(userIdentity));
 
-    if (user && (await user.comparePassword(password))) {
-      return userToGetUserResponseDTO(user);
+    if (user) {
+      if (await user.comparePassword(password)) {
+        return userToGetUserResponseDTO(user);
+      }
     }
 
     // Treat invalid password the same as not-found to make brute forcing more tedious
@@ -161,17 +164,24 @@ class UserService {
    * Updates the identified user with the given user data
    * @param userIdentity identifies the user to be updated
    * @param userData the changes to patch into the user
+   * @returns the updated user data
    * @throws if no user data was changed
    */
-  async updateUser (userIdentity: IdentifyUserDTO, userData: UpdateUserRequestDTO): Promise<void> {
-    const user = await ((typeof userIdentity === 'string') 
-      ? User.findById(stringToObjectId(userIdentity)) 
-      : User.findOne(userIdentity));
-
-    if (user) {
-      await user.updateOne(userData);
+  async updateUser (userIdentity: IdentifyUserDTO, userData: UpdateUserRequestDTO): Promise<GetUserResponseDTO> {
+    if (typeof userIdentity === 'string') {
+      const result = await User.findByIdAndUpdate(stringToObjectId(userIdentity), userData);
+      if (result) {
+        return userToGetUserResponseDTO(result);
+      } else {
+        throw new Error(UserServiceErrors.UserNotFound);
+      }
     } else {
-      throw new Error(UserServiceErrors.UserNotFound);
+      const result = await User.findOneAndUpdate(userIdentity, userData);
+      if (result) {
+        return userToGetUserResponseDTO(result);
+      } else {
+        throw new Error(UserServiceErrors.UserNotFound);
+      }
     }
   }
 };

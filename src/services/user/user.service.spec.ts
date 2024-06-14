@@ -34,14 +34,33 @@ describe('user service', () => {
       });
       expect(bobId).toBeDefined();
       expect(typeof bobId).toBe('string');
+    });
 
+    test('we can get an existing user by username', async () => {
       // ensure we can get bob back again using his id
       // and that his details match
-      const getBobAgain = await userService!.getUser(bobId);
+      const getBobAgain = await userService!.getUser({ username: 'bob' });
       expect(getBobAgain).toBeDefined();
       expect(getBobAgain?.username).toBe('bob');
       expect(getBobAgain?.email).toBe('bob@example.com');
+    });
 
+    test('we can get an existing user by id', async () => {
+      // ensure we can get bob back again using his id
+      // and that his details match
+      const getBobByUsername = await userService!.getUser({ username: 'bob' });
+      expect(getBobByUsername).toBeDefined();
+      expect(getBobByUsername?.username).toBe('bob');
+      expect(getBobByUsername?.email).toBe('bob@example.com');
+
+      // and then use his id to get him again
+      const getBobAgain = await userService!.getUser(getBobByUsername!.id);
+      expect(getBobAgain).toBeDefined();
+      expect(getBobAgain?.username).toBe('bob');
+      expect(getBobAgain?.email).toBe('bob@example.com');
+    });
+
+    test('get user with password verification', async () => {
       // ensure we can authenticate with bob using his password
       const getBobWithPassword = await userService!.getUserCheckPassword({
         username: 'bob',
@@ -49,7 +68,9 @@ describe('user service', () => {
       expect(getBobWithPassword).toBeDefined();
       expect(getBobWithPassword?.username).toBe('bob');
       expect(getBobWithPassword?.email).toBe('bob@example.com');
+    });
 
+    test('get user with password verification fails with an incorrect password', () => {
       // ensure using the incorrect password fails
       // and we don't get bob if we use the wrong password
       expect(userService!.getUserCheckPassword({
@@ -191,6 +212,66 @@ describe('user service', () => {
         email: 'invalid2@example.com',
         password: ''
       })).rejects.toThrowError();
+    });
+  });
+
+  describe('update user', () => {
+    test('we cannot update a user who doesnt exist', async () => {
+      expect(userService).toBeInstanceOf(UserService);
+      expect(userService!.updateUser({ 
+        username: 'this user doesnt exist' 
+      }, {
+        email: 'helloworld@example.com'
+      })).rejects.toThrowError();
+    });
+
+    test('we can update a user who does exist', async () => {
+      expect(userService).toBeInstanceOf(UserService);
+      const updateId = await userService!.createUser({
+        username: 'sally',
+        email: 'sally@example.com',
+        password: 'password'
+      });
+      expect(updateId).toBeDefined();
+      expect(typeof updateId).toBe('string');
+
+      await userService!.updateUser(updateId, {
+        username: 'Sally',
+        email: 'sallysnewemail@example.com'
+      });
+
+      const getSallyAgain = await userService!.getUser(updateId);
+      expect(getSallyAgain?.username).toBe('Sally');
+      expect(getSallyAgain?.email).toBe('sallysnewemail@example.com');
+    });
+
+    test('we can change a users password', async () => {
+      const getSally = await userService!.getUser({ username: 'Sally' });
+      expect(getSally).toBeDefined();
+
+      // ensure the password check really works
+      const checkSally = await userService!.getUserCheckPassword(getSally!.id, 'password');
+      expect(checkSally).toBeDefined();
+      expect(checkSally.id).toBe(getSally?.id);
+
+      // first check using the new password fails
+      expect(userService!.getUserCheckPassword(getSally!.id, 'newpassword')).rejects.toThrowError();
+
+      const updatedSally = await userService!.updateUser(getSally!.id, {
+        password: 'newpassword'
+      });
+      expect(updatedSally).toBeDefined();
+      expect(updatedSally.id).toBe(getSally?.id);
+      expect(updatedSally.username).toBe('Sally');
+
+      // sally maintains the same id
+      const checkSallysId = await userService!.getUser(getSally!.id);
+      expect(checkSallysId?.id).toBe(getSally?.id);
+
+      // now the new password should work
+      const getSallyAgain = await userService!.getUserCheckPassword(getSally!.id, 'newpassword');
+      expect(getSallyAgain).toBeDefined();
+      expect(getSallyAgain.id).toBe(getSally?.id);
     });
   });
 
