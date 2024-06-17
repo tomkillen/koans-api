@@ -9,5 +9,8 @@ declare global {
       userService: UserService;
       authService: AuthService;
     }
+    export interface Locals {
+      accessToken?: string;
+    }
   }
 }

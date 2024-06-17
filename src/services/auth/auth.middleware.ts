@@ -6,6 +6,7 @@ import { UserServiceErrors } from '../user/user.service';
 /**
  * Middleware that writes an access token to `res.locals.accessToken` using basic http auth
  * @example req.headers.authorization = `Basic ${base64(`${username}:${password}`)}`
+ * Upon auth failure, `res.locals.accessToken` is not defined 
  */
 export const basicAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
