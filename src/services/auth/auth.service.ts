@@ -1,6 +1,6 @@
 import passport from "passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
-import { SignOptions, sign } from 'jsonwebtoken';
+import { sign } from 'jsonwebtoken';
 import UserService from "../user/user.service";
 import Role from "./auth.roles";
 

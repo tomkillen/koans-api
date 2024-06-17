@@ -5,7 +5,8 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "esModuleInterop": true,
-    "strict": true
+    "strict": true,
+    "experimentalDecorators": true
   },
 	"lib": ["es2015"]
 }

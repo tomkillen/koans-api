@@ -1,4 +1,4 @@
-import { NextFunction, Response, Request, Router } from "express";
+import { Response, Request, Router } from "express";
 
 /**
  *  @openapi
@@ -34,7 +34,7 @@ import { NextFunction, Response, Request, Router } from "express";
  *        401:
  *          description: no current user is authenticated
  */
-const getUser = (_: Request, res: Response, next: NextFunction): void => {
+const getUser = (_: Request, res: Response): void => {
   res.status(501).send('Not Implemented');
 };
 
@@ -87,7 +87,7 @@ const getUser = (_: Request, res: Response, next: NextFunction): void => {
  *        409:
  *          description: a user with the provided username or email already exists
  */
-const createUser = (_: Request, res: Response, next: NextFunction): void => {
+const createUser = (_: Request, res: Response): void => {
   res.status(501).send('Not Implemented');
 };
 
@@ -127,7 +127,7 @@ const createUser = (_: Request, res: Response, next: NextFunction): void => {
  *        409:
  *          description: a user with the provided username or email already exists
  */
-const updateUser = (_: Request, res: Response, next: NextFunction): void => {
+const updateUser = (_: Request, res: Response): void => {
   res.status(501).send('Not Implemented');
 };
 
@@ -144,7 +144,7 @@ const updateUser = (_: Request, res: Response, next: NextFunction): void => {
  *        401:
  *          description: no user is logged in
  */
-const deleteUser = (_: Request, res: Response, next: NextFunction): void => {
+const deleteUser = (_: Request, res: Response): void => {
   res.status(501).send('Not Implemented');
 };
 

@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response, Router } from "express"
+import { Router } from "express"
 import AuthMiddleware from "../../../services/auth/auth.middleware";
 
 const auth = (authMiddleware: AuthMiddleware): Router => {
@@ -12,7 +12,6 @@ const auth = (authMiddleware: AuthMiddleware): Router => {
     (_, res) => {
       // if Basic Auth is successful, authMiddleware.getAccessTokenWithBasicAuth
       // saves the access token to res.locals.accessToken
-      console.log(`Got Access Token: ${JSON.stringify(res.locals.accessToken)}`);
       if (res.locals.accessToken) {
         res.status(200).json({
           access_token: res.locals.accessToken
@@ -25,3 +24,5 @@ const auth = (authMiddleware: AuthMiddleware): Router => {
   
   return router;
 }
+
+export default auth;

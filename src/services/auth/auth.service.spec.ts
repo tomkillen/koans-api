@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import mongoose, { Mongoose } from "mongoose";
 import UserService from "../user/user.service";
@@ -8,7 +11,7 @@ describe('auth.service', () => {
   let userService: UserService | null = null;
   let authService: AuthService | null = null;
 
-  let validUser: any = {
+  const validUser: any = {
     id: undefined,
     username: 'user1',
     email: 'user1@example.com',
@@ -45,6 +48,7 @@ describe('auth.service', () => {
       await mongooseClient?.disconnect();
     } finally {
       userService = null;
+      authService = null;
       delete validUser.id;
     }
   });

@@ -3,6 +3,7 @@ import AuthService from "./auth.service";
 import logger from '../../utilities/logger';
 import getBasicAuthCredentials from 'basic-auth';
 import { UserServiceErrors } from '../user/user.service';
+import { bind } from 'decko';
 
 type Config = {
   authService: AuthService;
@@ -15,6 +16,7 @@ class AuthMiddleware {
     this.authService = config.authService;
   }
 
+  @bind
   async getAccessTokenWithBasicAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const authInfo = getBasicAuthCredentials(req);
@@ -26,7 +28,8 @@ class AuthMiddleware {
         } catch (err) {
           if (err instanceof Error && err.message === UserServiceErrors.UserNotFound) {
             // User credentials are not valid or user does not exist
-            logger.info(`BasicAuth - Failed to authorize user ${JSON.stringify(authInfo)}`);
+            // suppress this error since it is expected when authorization fails
+            // but don't create an access token for the user
           } else {
             // Server error
             logger.error(`BasicAuth failed with error ${err}`);
@@ -34,7 +37,7 @@ class AuthMiddleware {
           }
         }
       } else {
-        logger.info(`BasicAuth - Missing credentials: ${JSON.stringify(authInfo)}`);
+        // User did not provide credentials, so don't authorize them
       }
       return next();
     } catch (err) {
