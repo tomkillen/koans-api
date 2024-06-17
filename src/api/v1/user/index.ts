@@ -155,7 +155,7 @@ const deleteUser = (_: Request, res: Response, next: NextFunction): void => {
 /**
  * Creates a router for /user
  */
-const v1UserRoutes = (prefix: string): Router => {
+const user = (prefix: string): Router => {
   const path = `${prefix}/user`;
   const router = Router();
 
@@ -167,4 +167,4 @@ const v1UserRoutes = (prefix: string): Router => {
   return router;
 };
 
-export default v1UserRoutes;
+export default user;

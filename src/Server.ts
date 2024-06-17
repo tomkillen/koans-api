@@ -1,11 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
-import SwaggerUI from 'swagger-ui-express';
 import logger from './utilities/logger';
-import apiRoutes from './api/api.routes';
+import api from './api';
 import Config from './config/Config';
-import swaggerJSDoc from 'swagger-jsdoc';
 
 /**
  * Server for the Koans API
@@ -23,88 +21,10 @@ const Server = (config: Config) => {
     optionsSuccessStatus: 200,
   }));
 
-  /**
-   * @openapi
-   *  /healthyz:
-   *    get:
-   *      description: Health check for the Koans API
-   *      responses:
-   *        200:
-   *          description: OK
-   */
-  root.get('/healthyz', (_, res) => {
-    // Commentary:
-    // Health check should be a very cheap operation to indicate if this system is functional
-    // Subsystems should implement their own health checks so we don't check the health of our 
-    // dependencies here, but if we had internal subsystems (i.e. background processes, sidecars)
-    // we would also have some mechanism of knowing if they are healthy and including that here
-    res.status(200).send('OK');
-  });
+  // Add api router
+  root.use(api(config));
 
-  /**
-   * @openapi
-   *  /alivez:
-   *    get:
-   *      description: Liveness probe for the Koans API
-   *      responses:
-   *        200:
-   *          description: OK
-   */
-  root.get('/alivez', (_, res) => {
-    // Commentary:
-    // Alive check should be a very cheap "ping" type operation to check if the server is now running
-    res.status(200).send('OK');
-  });
-
-  // Add API DOC middleware when development mode is enabled
-  if (config.developmentMode) {
-    const apiSpec = swaggerJSDoc({
-      failOnErrors: true,
-      definition: {
-        openapi: '3.1.0',
-        host: config.hostname,
-        basePath: config.hostname,
-        info: {
-          title: 'Koans API',
-          description: 'A REST API designed to promote relaxation, boost self-esteem, improve productivity, enhance physical health, and foster social connections.',
-          version: '0.1.0',
-        },
-        components: {
-          securitySchemes: {
-            basicAuth: {
-              type: 'http',
-              scheme: 'basic',
-            },
-            bearerAuth: {
-              type: 'http',
-              scheme: 'bearer',
-              bearerFormat: 'JWT'
-            },
-          },
-        },
-        servers: [{
-          url: `http://${config.hostname}/v1`,
-        }],
-      },
-      apis: [ '**/*.routes.js', '**/*.routes.ts' ],
-    });
-
-    root.use(
-      '/api-docs/swagger',
-      SwaggerUI.serve,
-      SwaggerUI.setup(apiSpec),
-    );
-
-    root.get('/api-docs', function(_, res) {
-      res.setHeader('Content-Type', 'application/json');
-      res.send(apiSpec);
-    });
-  };
-
-  // Add api routes
-  root.use(apiRoutes());
-
-  // Catch-all not found
+  // Catch-all not found handler
   root.all('*', (_, res) => {
     res.status(404).send('not found');
   });
