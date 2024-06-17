@@ -1,6 +1,11 @@
 # Using .dockerignore as a whitelist helps prevent accidentally adding sensitive data or unintentional bloat
 *
 
-# Don't ignore these files!
+# include files required for building & running the app
+!package*.json
+!tsconfig.json
+!src
+
+# Don't ignore these files which are important for Docker
 !.dockeringore
 !Dockerfile
