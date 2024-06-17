@@ -81,7 +81,7 @@ destroy: docker-compose-down
 
 # Destroy & then start the app for a fresh debugging session, useful for slightly quicker iteration
 .PHONY: restart
-restart: destroy start
+restart: destroy docker-compose-build-nocache docker-compose-up
 
 # Clean the working environment, delete build products, aretefacts, etc
 .PHONY: clean
