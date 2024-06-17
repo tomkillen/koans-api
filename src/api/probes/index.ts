@@ -2,16 +2,7 @@ import { Router } from "express";
 
 const probes = (): Router => {
   const router: Router = Router();
-
-  /**
-   * @openapi
-   *  /healthyz:
-   *    get:
-   *      description: Health check for the Koans API
-   *      responses:
-   *        200:
-   *          description: OK
-   */
+  
   router.get('/healthyz', (_, res) => {
     // Commentary:
     // Health check should be a very cheap operation to indicate if this system is functional
@@ -21,15 +12,6 @@ const probes = (): Router => {
     res.status(200).send('OK');
   });
 
-  /**
-   * @openapi
-   *  /alivez:
-   *    get:
-   *      description: Liveness probe for the Koans API
-   *      responses:
-   *        200:
-   *          description: OK
-   */
   router.get('/alivez', (_, res) => {
     // Commentary:
     // Alive check should be a very cheap "ping" type operation to check if the server is now running

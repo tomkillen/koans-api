@@ -43,7 +43,7 @@ const docs = (config: Config): Router => {
         url: `http://${config.hostname}/v1`,
       }],
     },
-    apis: [ '**/*.routes.js', '**/*.routes.ts' ],
+    apis: [ '**/index.js', '**/index.ts' ],
   });
 
   // route '/api-docs' to return the OpenAPI spec
