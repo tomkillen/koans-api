@@ -208,6 +208,28 @@ endif
 endif
 	$(MAKE) setup-env
 
+### Development - commands that enable running locally outside of docker
+.PHONY: dev-start
+dev-start:
+	$(MAKE) dev-mongo-up
+	npm run start:dev:watch || true
+	$(MAKE) dev-mongo-stop
+
+# Run an exposed mongo db instance for local development purposes
+.PHONY: dev-mongo-up
+dev-mongo-up:
+	$(DOCKER_COMPOSE) -f docker-compose-mongo.yaml up --detach
+
+# Stop & destroy development mongo do
+.PHONY: dev-mongo-stop
+dev-mongo-stop:
+	$(DOCKER_COMPOSE) -f docker-compose-mongo.yaml stop
+
+# Stop & destroy development mongo do
+.PHONY: dev-mongo-down
+dev-mongo-down:
+	$(DOCKER_COMPOSE) -f docker-compose-mongo.yaml down
+
 ### Tools
 
 # Delete tools from ./bin, but preserve .keep

@@ -1,5 +1,5 @@
 import { Router, json } from "express"
-import AuthMiddleware from "../../../services/auth/auth.middleware";
+import { accessTokenWithCredentials, basicAuth } from "../../../services/auth/auth.middleware";
 import { body, oneOf, validationResult } from "express-validator";
 
 /**
@@ -93,7 +93,7 @@ import { body, oneOf, validationResult } from "express-validator";
  *           description: Not Authorized
  *           summary: Either the user does not exist or the credentials are not valid
  */
-const auth = (authMiddleware: AuthMiddleware): Router => {
+const auth = (): Router => {
   const router = Router();
   const path = '/auth';
 
@@ -101,7 +101,7 @@ const auth = (authMiddleware: AuthMiddleware): Router => {
   // expects Authorization: Basic <username>:<password>
   router.get(
     path,
-    authMiddleware.getAccessTokenWithBasicAuth,
+    basicAuth,
     (_, res) => {
       // if Basic Auth is successful, authMiddleware.getAccessTokenWithBasicAuth
       // saves the access token to res.locals.accessToken
@@ -132,7 +132,7 @@ const auth = (authMiddleware: AuthMiddleware): Router => {
         next();
       }
     },
-    authMiddleware.getAccessTokenWithCredentials,
+    accessTokenWithCredentials,
     (_, res) => {
       // if authorization is successful, authMiddleware.getAccessTokenWithCredentials
       // saves the access token to res.locals.accessToken

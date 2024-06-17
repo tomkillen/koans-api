@@ -6,7 +6,9 @@
  */
 
 // Initialize a database for use by the Koans API with read/write access to this db only
+print('initializing koans database')
 db = db.getSiblingDB('koans');
+print('creating koans db user')
 db.createUser(
   {
     user: 'koans',

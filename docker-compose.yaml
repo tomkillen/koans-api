@@ -40,6 +40,7 @@ services:
       # secret values might be included in logs from build pipelines if those pipelines
       # aren't suppressing secrets, so an even better solution could be to leverage docker
       # secrets https://docs.docker.com/compose/use-secrets/
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE:-koans}
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-root}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-root}
     volumes:

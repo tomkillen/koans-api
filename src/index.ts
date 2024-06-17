@@ -7,9 +7,10 @@ import logger from './utilities/logger';
 // Note that shell or defined environment variables take precendence over .env
 dotEnv();
 
-const run = () => {
+const run = async () => {
   const config = createConfig();
-  const server = Server(config);
+
+  const server = await Server(config);
   server.start();
 
   const shutdown = async (): Promise<void> => {

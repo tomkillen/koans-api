@@ -10,6 +10,7 @@ const createConfig = (): Config => ({
   developmentMode: process.env.NODE_ENV === 'development',
   port: parsePort(process.env.KOANS_PORT ?? '3000'),
   hostname: process.env.KOANS_HOSTNAME ?? 'localhost',
+  mongo: process.env.KOANS_MONGO_URI ?? '',
 });
 
 export default createConfig;

@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import mongoose, { Mongoose } from "mongoose";
 import UserService from "../user/user.service";
 import AuthService from "./auth.service";
-import AuthMiddleware from "./auth.middleware";
+import { basicAuth } from "./auth.middleware";
 import supertest from "supertest";
 import express from "express";
 
@@ -13,7 +13,6 @@ describe('auth.middleware', () => {
   let mongooseClient: Mongoose | null = null;  
   let userService: UserService | null = null;
   let authService: AuthService | null = null;
-  let authMiddleware: AuthMiddleware | null = null;
 
   beforeAll(async () => {
     // @shelf/jest-mongodb creates an in-memory mongo instance and injects the URI
@@ -27,9 +26,6 @@ describe('auth.middleware', () => {
         secretOrKey: 'insecure string for testing purposes',
       },
       userService,
-    });
-    authMiddleware = new AuthMiddleware({
-      authService,
     });
 
     await userService!.createUser({
@@ -45,15 +41,16 @@ describe('auth.middleware', () => {
     } finally {
       userService = null;
       authService = null;
-      authMiddleware = null;
     }
   });
 
   test('can authorize using basic auth', async () => {
     const app = express();
+    app.userService = userService!;
+    app.authService = authService!;
     app.use(
       '/test',
-      authMiddleware!.getAccessTokenWithBasicAuth,
+      basicAuth,
       (_, res) => {
         expect(res.locals.accessToken).toBeDefined();
         res.status(200).end();
@@ -66,9 +63,11 @@ describe('auth.middleware', () => {
 
   test('empty auth fails', async () => {
     const app = express();
+    app.userService = userService!;
+    app.authService = authService!;
     app.use(
       '/test',
-      authMiddleware!.getAccessTokenWithBasicAuth,
+      basicAuth,
       (_, res) => {
         expect(res.locals.accessToken).toBeUndefined();
         res.status(200).end();
@@ -81,9 +80,11 @@ describe('auth.middleware', () => {
 
   test('incorrect password fails', async () => {
     const app = express();
+    app.userService = userService!;
+    app.authService = authService!;
     app.use(
       '/test',
-      authMiddleware!.getAccessTokenWithBasicAuth,
+      basicAuth,
       (_, res) => {
         expect(res.locals.accessToken).toBeUndefined();
         res.status(200).end();

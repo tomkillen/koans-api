@@ -122,6 +122,7 @@ class UserService {
    * Gets user information
    * @param userIdentity identifies the user we want information about
    * @returns information about the user
+   * @throws if the user is not found
    */
   async getUser (userIdentity: IdentifyUserDTO): Promise<GetUserResponseDTO | null> {
     // I happen to like non-nested tuples. I understand that nested tuples become a mess

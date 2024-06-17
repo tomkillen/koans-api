@@ -4,12 +4,28 @@ import { createServer } from 'http';
 import logger from './utilities/logger';
 import api from './api';
 import Config from './config/Config';
+import UserService from './services/user/user.service';
+import mongoose from 'mongoose';
+import AuthService from './services/auth/auth.service';
 
 /**
  * Server for the Koans API
  */
-const Server = (config: Config) => {
+const Server = async (config: Config) => {
   const root = express();
+
+  // Setup services & application middlewares
+  const mongooseClient: mongoose.Mongoose = await mongoose.connect(config.mongo);
+  root.userService = new UserService(mongooseClient);
+  root.authService = new AuthService({
+    jwt: {
+      audience: 'koans.example.com',
+      issuer: 'koans.example.com',
+      secretOrKey: 'use a certificate in prod',
+    },
+    userService: root.userService,
+  });
+
   const server = createServer(root);
 
   // Setup permissive CORS policy since we aren't restricting usage of this API

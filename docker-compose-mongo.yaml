@@ -1,0 +1,34 @@
+# Helper docker-compose that creates an exposed mongo db for development purposes
+services:
+  # Mongo DB to provide persistent data storage
+  mongo:
+    image: mongo:5.0
+    restart: unless-stopped
+    healthcheck: 
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    ports:
+    - 27017:27017
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE:-koans}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-root}
+    volumes:
+    - ./mongo/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:ro
+  # mongo-express allows us to inspect mongo, similar to compass
+  mongo-express:
+    image: mongo-express:1.0
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+    - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_AUTH_USERNAME: ${ME_CONFIG_MONGODB_ADMINUSERNAME:-admin}
+      ME_CONFIG_MONGODB_AUTH_PASSWORD: ${ME_CONFIG_MONGODB_ADMINPASSWORD:-admin}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME:-root}:${MONGO_INITDB_ROOT_PASSWORD:-root}@mongo:27017/
+      ME_CONFIG_BASICAUTH: false

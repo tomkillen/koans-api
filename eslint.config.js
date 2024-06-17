@@ -13,7 +13,7 @@ module.exports = tseslint.config(
       '*.cjs',
       '*config.js',
       // Ignore mongo init scripts
-      'mongo/*.js',
+      'mongo/**/*.js',
     ],
   },
   {
