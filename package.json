@@ -4,8 +4,9 @@
   "description": "A REST API designed to promote relaxation, boost self-esteem, improve productivity, enhance physical health, and foster social connections.",
   "main": "dist/index.js",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
+    "start":  "node dist/index",
     "start:dev": "ts-node src/index",
     "build": "tsc",
     "lint": "eslint .",

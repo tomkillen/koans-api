@@ -2,9 +2,11 @@ import { NextFunction, Response, Request, Router } from "express";
 
 /**
  *  @openapi
- *  /v1/user:
+ *  /user:
  *    get:
  *      summary: get the current users information
+ *      security:
+ *        - bearerAuth: []
  *      responses:  
  *        200:
  *          description: ok
@@ -39,7 +41,7 @@ const getUser = (_: Request, res: Response, next: NextFunction): void => {
 
 /**
  *  @openapi
- *  /v1/user:
+ *  /user:
  *    post:
  *      summary: creates a new user
  *      requestBody:
@@ -93,9 +95,11 @@ const createUser = (_: Request, res: Response, next: NextFunction): void => {
 
 /**
  *  @openapi
- *  /v1/user:
+ *  /user:
  *    patch:
  *      summary: updates the current user
+ *      security:
+ *        - bearerAuth: []
  *      requestBody:
  *        required: true
  *        content:
@@ -132,9 +136,11 @@ const updateUser = (_: Request, res: Response, next: NextFunction): void => {
 
 /**
  *  @openapi
- *  /v1/user:
+ *  /user:
  *    delete:
  *      summary: delete the current user
+ *      security:
+ *        - bearerAuth: []
  *      responses:  
  *        200:
  *          description: user deleted
@@ -147,10 +153,10 @@ const deleteUser = (_: Request, res: Response, next: NextFunction): void => {
 };
 
 /**
- * Creates a router for /v1/user
+ * Creates a router for /user
  */
-const v1UserRoutes = (): Router => {
-  const path = '/v1/user';
+const v1UserRoutes = (prefix: string): Router => {
+  const path = `${prefix}/user`;
   const router = Router();
 
   router.get(path, getUser);

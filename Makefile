@@ -174,6 +174,12 @@ docker-publish: check-stage-env test
 		|| echo "Failed to build & publish docker image using buildx"
 	docker buildx rm build-multiplatform
 
+### Building
+
+.PHONY: build
+build:
+	npm run build
+
 ### Setup & codegen
 
 # Initialize the environment

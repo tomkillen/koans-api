@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
-import { serve as serveSwaggerUi, setup as setupSwaggerUi } from 'swagger-ui-express';
+import SwaggerUI from 'swagger-ui-express';
 import logger from './utilities/logger';
 import apiRoutes from './api/api.routes';
 import Config from './config/Config';
@@ -58,24 +58,47 @@ const Server = (config: Config) => {
 
   // Add API DOC middleware when development mode is enabled
   if (config.developmentMode) {
-    root.use(
-      '/api-docs/swagger',
-      serveSwaggerUi,
-      setupSwaggerUi(swaggerJSDoc({
-        failOnErrors: true,
-        definition: {
-          openapi: '3.1.0',
-          host: config.hostname,
-          basePath: config.hostname,
-          info: {
-            title: 'Koans API',
-            description: 'A REST API designed to promote relaxation, boost self-esteem, improve productivity, enhance physical health, and foster social connections.',
-            version: '0.1.0',
+    const apiSpec = swaggerJSDoc({
+      failOnErrors: true,
+      definition: {
+        openapi: '3.1.0',
+        host: config.hostname,
+        basePath: config.hostname,
+        info: {
+          title: 'Koans API',
+          description: 'A REST API designed to promote relaxation, boost self-esteem, improve productivity, enhance physical health, and foster social connections.',
+          version: '0.1.0',
+        },
+        components: {
+          securitySchemes: {
+            basicAuth: {
+              type: 'http',
+              scheme: 'basic',
+            },
+            bearerAuth: {
+              type: 'http',
+              scheme: 'bearer',
+              bearerFormat: 'JWT'
+            },
           },
         },
-        apis: [ '**/*.routes.js', '**/*.routes.ts' ],
-      })),
+        servers: [{
+          url: `http://${config.hostname}/v1`,
+        }],
+      },
+      apis: [ '**/*.routes.js', '**/*.routes.ts' ],
+    });
+
+    root.use(
+      '/api-docs/swagger',
+      SwaggerUI.serve,
+      SwaggerUI.setup(apiSpec),
     );
+
+    root.get('/api-docs', function(_, res) {
+      res.setHeader('Content-Type', 'application/json');
+      res.send(apiSpec);
+    });
   };
 
   // Add api routes
