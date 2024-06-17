@@ -17,8 +17,8 @@ const api = (config: Config): Router => {
   // Route '/api-docs'
   router.use(docs(config));
 
-  // Route '/v1'
-  router.use(v1());
+  // Route '/v1' handlers
+  router.use('/v1', v1());
   
   return router;
 }

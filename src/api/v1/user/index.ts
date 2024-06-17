@@ -35,8 +35,7 @@ import { NextFunction, Response, Request, Router } from "express";
  *          description: no current user is authenticated
  */
 const getUser = (_: Request, res: Response, next: NextFunction): void => {
-  res.status(501).send('not implemented');
-  next('not implemented');
+  res.status(501).send('Not Implemented');
 };
 
 /**
@@ -89,8 +88,7 @@ const getUser = (_: Request, res: Response, next: NextFunction): void => {
  *          description: a user with the provided username or email already exists
  */
 const createUser = (_: Request, res: Response, next: NextFunction): void => {
-  res.status(501).send('not implemented');
-  next('not implemented');
+  res.status(501).send('Not Implemented');
 };
 
 /**
@@ -130,8 +128,7 @@ const createUser = (_: Request, res: Response, next: NextFunction): void => {
  *          description: a user with the provided username or email already exists
  */
 const updateUser = (_: Request, res: Response, next: NextFunction): void => {
-  res.status(501).send('not implemented');
-  next('not implemented');
+  res.status(501).send('Not Implemented');
 };
 
 /**
@@ -148,15 +145,14 @@ const updateUser = (_: Request, res: Response, next: NextFunction): void => {
  *          description: no user is logged in
  */
 const deleteUser = (_: Request, res: Response, next: NextFunction): void => {
-  res.status(501).send('not implemented');
-  next('not implemented');
+  res.status(501).send('Not Implemented');
 };
 
 /**
  * Creates a router for /user
  */
-const user = (prefix: string): Router => {
-  const path = `${prefix}/user`;
+const user = (): Router => {
+  const path = '/user';
   const router = Router();
 
   router.get(path, getUser);

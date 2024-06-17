@@ -62,7 +62,7 @@ describe('user service', () => {
 
     test('get user with password verification', async () => {
       // ensure we can authenticate with bob using his password
-      const getBobWithPassword = await userService!.getUserCheckPassword({
+      const getBobWithPassword = await userService!.getUserWithCredentials({
         username: 'bob',
       }, 'password');
       expect(getBobWithPassword).toBeDefined();
@@ -73,7 +73,7 @@ describe('user service', () => {
     test('get user with password verification fails with an incorrect password', () => {
       // ensure using the incorrect password fails
       // and we don't get bob if we use the wrong password
-      expect(userService!.getUserCheckPassword({
+      expect(userService!.getUserWithCredentials({
         username: 'bob',
       }, 'incorrect password')).rejects.toThrowError();
     });
@@ -250,12 +250,12 @@ describe('user service', () => {
       expect(getSally).toBeDefined();
 
       // ensure the password check really works
-      const checkSally = await userService!.getUserCheckPassword(getSally!.id, 'password');
+      const checkSally = await userService!.getUserWithCredentials(getSally!.id, 'password');
       expect(checkSally).toBeDefined();
       expect(checkSally.id).toBe(getSally?.id);
 
       // first check using the new password fails
-      expect(userService!.getUserCheckPassword(getSally!.id, 'newpassword')).rejects.toThrowError();
+      expect(userService!.getUserWithCredentials(getSally!.id, 'newpassword')).rejects.toThrowError();
 
       const updatedSally = await userService!.updateUser(getSally!.id, {
         password: 'newpassword'
@@ -269,7 +269,7 @@ describe('user service', () => {
       expect(checkSallysId?.id).toBe(getSally?.id);
 
       // now the new password should work
-      const getSallyAgain = await userService!.getUserCheckPassword(getSally!.id, 'newpassword');
+      const getSallyAgain = await userService!.getUserWithCredentials(getSally!.id, 'newpassword');
       expect(getSallyAgain).toBeDefined();
       expect(getSallyAgain.id).toBe(getSally?.id);
     });

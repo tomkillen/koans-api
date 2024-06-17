@@ -26,7 +26,7 @@ const Server = (config: Config) => {
 
   // Catch-all not found handler
   root.all('*', (_, res) => {
-    res.status(404).send('not found');
+    res.status(404).send('Not Found');
   });
 
   return {

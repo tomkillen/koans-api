@@ -37,6 +37,7 @@ export type IUser = {
   username: string;
   email: string;
   password: string;
+  roles?: string[];
   comparePassword: (compareTo: string) => Promise<boolean>;
 } & Document;
 

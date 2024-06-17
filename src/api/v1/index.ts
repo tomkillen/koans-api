@@ -8,7 +8,7 @@ const v1 = (): Router => {
   const router = Router();
 
   // routes for '/user'
-  router.use(user('/v1'));
+  router.use(user());
   
   return router;
 };

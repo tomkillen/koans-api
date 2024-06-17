@@ -2,12 +2,14 @@ import { Mongoose } from "mongoose";
 import User, { IUser, UserValidationErrors } from "./user.model";
 import objectIdToString from "../../helpers/objectIdToString";
 import stringToObjectId from "../../helpers/stringToObjectId";
+import Role from "../auth/auth.roles";
 
 // Request DTO for creating a new user
 export type CreateUserRequestDTO = {
   username: string;
   email: string;
   password: string;
+  roles?: Role[];
 };
 
 // Request DTO for updating a users information
@@ -15,6 +17,7 @@ export type UpdateUserRequestDTO = {
   username?: string;
   email?: string;
   password?: string;
+  roles?: Role[];
 };
 
 // Request DTO for identifying a user
@@ -34,6 +37,7 @@ export type GetUserResponseDTO = {
   username: string;
   email: string;
   created: Date;
+  roles?: Role[];
 };
 
 export const UserServiceErrors = {
@@ -141,7 +145,7 @@ class UserService {
    * @returns The user if the user exists and their password is correct
    * @throws If the user does not exist or if the password is incorrect
    */
-  async getUserCheckPassword (userIdentity: IdentifyUserDTO, password: string): Promise<GetUserResponseDTO> {
+  async getUserWithCredentials (userIdentity: IdentifyUserDTO, password: string): Promise<GetUserResponseDTO> {
     // I happen to like non-nested tuples. I understand that nested tuples become a mess
     // but I personally find this more readable than if statements, so long as they are 
     // 1-deep & neatly arranged like this.
@@ -150,6 +154,15 @@ class UserService {
       ? User.findById(stringToObjectId(userIdentity)) 
       : User.findOne(userIdentity));
 
+    // Note: There is a potential timing-attack present here
+    // We will respond faster when no user is found compared to when a user is found
+    // An attacker could monitor our response time and note that we respond much faster
+    // for some user identifiers compared to others, and use this to deduce that they
+    // have discovered a user identifier that exists.
+    // We could implement a constant-time response here if we want to avoid leaking that information.
+    // The timing attack will be limited to the existence of a valid user identifier however
+    // since the password comparison is performed by comparing hashes, so no useful information
+    // will be leaked by timing differences there
     if (user) {
       if (await user.comparePassword(password)) {
         return userToGetUserResponseDTO(user);
