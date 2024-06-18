@@ -392,9 +392,9 @@ paths:
           application/json:
             schema:
               oneOf:
-              - $ref: "#/components/schemas/LoginWithId"
               - $ref: "#/components/schemas/LoginWithUsername"
               - $ref: "#/components/schemas/LoginWithEmail"
+              - $ref: "#/components/schemas/LoginWithId"
       responses:
         "200":
           description: OK

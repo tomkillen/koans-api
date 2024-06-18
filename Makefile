@@ -222,6 +222,10 @@ dev-start:
 	$(MAKE) dev-mongo-up
 	npm run start:dev:watch || true
 
+# Resets the local environment & restarts the app
+.PHONY: dev-restart
+dev-restart: dev-mongo-down dev-start
+
 # Run an exposed mongo db instance for local development purposes
 .PHONY: dev-mongo-up
 dev-mongo-up:

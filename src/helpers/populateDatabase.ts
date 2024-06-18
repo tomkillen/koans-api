@@ -1,6 +1,7 @@
 import ActivityService from "../services/activity/activity.service";
 import { UserInfo } from "../services/user/user.model";
 import UserService from "../services/user/user.service";
+import logger from "../utilities/logger";
 import generateActivity from "./generateActivity";
 
 const users: UserInfo[] = [{
@@ -16,6 +17,10 @@ const users: UserInfo[] = [{
   username: 'second',
   password: 'second',
   email: 'second@example.com',
+}, {
+  username: 'username',
+  password: 'password',
+  email: 'username@example.com',
 }];
 
 /**
@@ -25,7 +30,12 @@ const createUsers = async (userService: UserService) => {
   await Promise.all(users.map(async (user) => {
     const existing = await userService.getUser({ username: user.username });
     if (!existing) {
-      await userService.createUser(user);
+      try {
+        await userService.createUser(user);
+        logger.info(`DEBUG INFO: Created test user username: ${user.username} password: ${user.password}`);
+      } catch (err) {
+        logger.warning(`DEBUG WARNING: Failed to create test user: ${user.username} with error ${err}`);
+      }
     }
   }));
 };
@@ -37,7 +47,12 @@ const createActivities = async (activitiesService: ActivityService, count: numbe
   const existing = await activitiesService.getActivities();
   const numToCreate = Math.max(0, count - existing.total);
   await Promise.all(Array.from({ length: numToCreate }).map(async () => {
-    await activitiesService.createActivity(generateActivity());
+    const activity = generateActivity();
+    try {
+      await activitiesService.createActivity(activity);
+    } catch (err) {
+      logger.warning(`DEBUG WARNING: Failed to create test activity ${activity.title} with error ${err}`);
+    }
   }));
 };
 
