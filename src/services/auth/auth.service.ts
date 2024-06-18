@@ -1,6 +1,4 @@
-import passport from "passport";
-import { ExtractJwt, Strategy } from "passport-jwt";
-import { sign } from 'jsonwebtoken';
+import { JwtPayload, sign, verify } from 'jsonwebtoken';
 import UserService from "../user/user.service";
 import Role from "./auth.roles";
 
@@ -9,14 +7,24 @@ type JWTConfig = {
   audience: string;
   /** issuer of the jwt token */
   issuer: string;
-  /** secret value for creating tokens */
-  secretOrKey: string;
+  /** 
+   * secret value for creating tokens 
+   * Commentary: a private key would be better for a production app but I am using a string
+  */
+  secret: string;
 };
 
 type Config = {
   jwt: JWTConfig;
   userService: UserService;
 };
+
+export type AuthIdentity = {
+  id: string;
+  roles?: Role[];
+};
+
+const validRoles = [ 'user', 'admin' ];
 
 class AuthService {
   private readonly userService: UserService;
@@ -25,55 +33,72 @@ class AuthService {
   constructor(config: Config) {
     this.userService = config.userService;
     this.jwt = config.jwt;
-
-    // Configure auth strategies, currently only JWT but we could support more
-    passport.use(new Strategy({
-      ...config.jwt,
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-    }, async (payload, done) => {
-      if (
-        typeof payload === 'object' &&
-        payload !== null &&
-        'sub' in payload &&
-        typeof payload.sub === 'string'
-      ) {
-        try {
-          const user = await config.userService.getUser( payload.sub );
-          if (user) {
-            done(null, user);
-          } else {
-            done('user not found', false);
-          }
-        } catch (err) {
-          done(err, false);
-        }
-      } else {
-        done('invalid jwt', false);
-      }
-    }));
   }
 
   async getAuthTokenForUser(userId: string | { username: string } | { email: string }, password: string): Promise<string> {
     return this.signUserIdentity(await this.userService.getUserWithCredentials(userId, password));
   }
 
-  private signUserIdentity(userIdentity: { id: string, roles?: Role[] }): string {
-    return this.signPayload({
+  async getUserIdentity(accessToken: string): Promise<AuthIdentity> {
+    const payload = await this.decode(accessToken);
+    if (
+      !payload || 
+      typeof payload !== 'object' ||
+      !payload.sub ||
+      typeof payload.sub !== 'string' ||
+      (payload.roles && !Array.isArray(payload.roles))
+    ) {
+      throw new Error('Unexpected identity');
+    }
+
+    return {
+      id: payload.sub,
+      roles: payload.roles
+    }
+  }
+
+  private async signUserIdentity(userIdentity: AuthIdentity): Promise<string> {
+    return await this.signPayload({
       sub: userIdentity.id,
       roles: userIdentity.roles,
     });
   }
 
-  private signPayload(payload: object): string {
-    return sign(
-      payload,
-      this.jwt.secretOrKey,
-      {
-        audience: this.jwt.audience,
-        issuer: this.jwt.issuer,
-        expiresIn: '8h',
-      }
-    )
+  private async decode(token: string): Promise<string | JwtPayload> {
+    return new Promise((resolve, reject) => {
+      verify(
+        token, 
+        this.jwt.secret,
+        (err, decoded) => {
+          if (err || !decoded) {
+            reject(err);
+          } else {
+            resolve(decoded);
+          }
+        }
+      );
+    });
+  }
+
+  private async signPayload(payload: object): Promise<string> {
+    return new Promise((resolve, reject) => {
+      sign(
+        payload,
+        this.jwt.secret,
+        {
+          audience: this.jwt.audience,
+          issuer: this.jwt.issuer,
+          expiresIn: '8h',
+        },
+        (err, encoded) => {
+          if (err || !encoded) {
+            reject(err);
+          } else {
+            resolve(encoded);
+          }
+        },
+      )
+    });
   }
 };
 

@@ -4,6 +4,7 @@
 // with great rights given to users with the "admin" role
 // Note that users with no roles are considered regular users with only basic access rights
 type Role = |
+  'user' |
   'admin';
 
 export default Role;

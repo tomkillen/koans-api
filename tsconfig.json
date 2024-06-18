@@ -6,7 +6,7 @@
     "outDir": "./dist",
     "esModuleInterop": true,
     "strict": true,
-    "typeRoots" : [ "./src/typings" ]
+    "typeRoots": [ "./typings" ]
   },
-	"lib": ["es2015"]
+	"lib": ["es2015"],
 }

@@ -23,7 +23,7 @@ describe('auth.middleware', () => {
       jwt: {
         issuer: 'api.koans.example.com',
         audience: 'koans.example.com',
-        secretOrKey: 'insecure string for testing purposes',
+        secret: 'insecure string for testing purposes',
       },
       userService,
     });

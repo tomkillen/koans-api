@@ -21,7 +21,7 @@ const Server = async (config: Config) => {
     jwt: {
       audience: 'koans.example.com',
       issuer: 'koans.example.com',
-      secretOrKey: 'use a certificate in prod',
+      secret: 'use a certificate in prod',
     },
     userService: root.userService,
   });
