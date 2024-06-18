@@ -91,4 +91,41 @@ describe('e2e create user & login', () => {
     expect(get.body.email).toBe('testuser2@example.com');
     user.email = get.body.email;
   });
+
+  test('can change password', async () => {
+    const newPassword = 'test user 2 password';
+    const res = await supertest(app).patch('/v1/user').send({ password: newPassword}).set('Authorization', `Bearer ${user.accessToken}`);
+    expect(res.statusCode).toBe(204);
+    user.password = newPassword;
+  });
+
+  test('can basic auth with new password', async () => {
+    const res = await supertest(app).get('/v1/auth').send().set('Authorization', `Basic ${Buffer.from(`${user.username}:${user.password}`).toString('base64')}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('access_token');
+  });
+
+  test('can simple auth test user with new username', async () => {
+    const res = await supertest(app).post('/v1/auth').send({ username: user.username, password: user.password });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('access_token');
+  });
+
+  test('can simple auth test user with new email', async () => {
+    const res = await supertest(app).post('/v1/auth').send({ username: user.username, password: user.password });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('access_token');
+    user.accessToken = res.body.access_token;
+  });
+
+  test('can get user information with new access token from new password', async () => {
+    const res = await supertest(app).get('/v1/user').send().set('Authorization', `Bearer ${user.accessToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('id');
+    expect(res.body).toHaveProperty('username');
+    expect(res.body).toHaveProperty('email');
+    expect(res.body).toHaveProperty('created');
+    expect(res.body.username).toBe(user.username);
+    expect(res.body.email).toBe(user.email);
+  });
 });
