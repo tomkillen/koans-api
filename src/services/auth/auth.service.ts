@@ -24,8 +24,6 @@ export type AuthIdentity = {
   roles?: Role[];
 };
 
-const validRoles = [ 'user', 'admin' ];
-
 class AuthService {
   private readonly userService: UserService;
   private readonly jwt: JWTConfig;

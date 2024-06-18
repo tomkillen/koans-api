@@ -56,9 +56,7 @@ export const bearerAuth = async (req: Request, res: Response, next: NextFunction
             email: user.email,
             created: user.created,
             // Restrict roles to those the user owns & that are present in the token
-            roles: identity.roles && user.roles
-              ? user.roles.filter(role => identity.roles!.indexOf(role) >= 0)
-              : undefined,
+            roles: user.roles?.filter(role => identity.roles && identity.roles.indexOf(role) >= 0),
           };
 
           return next();
