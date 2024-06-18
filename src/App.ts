@@ -1,9 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import api from './api';
-import Config from './config/Config';
 import UserService from './services/user/user.service';
-import mongoose from 'mongoose';
+import { Mongoose } from 'mongoose';
 import AuthService from './services/auth/auth.service';
 import ActivityService from './services/activity/activity.service';
 import populateDatabase from './helpers/populateDatabase';
@@ -11,11 +10,10 @@ import populateDatabase from './helpers/populateDatabase';
 /**
  * express.Application for the Koans API
  */
-const App = async (config: Config) => {
+const App = async (mongooseClient: Mongoose) => {
   const app = express();
 
   // Setup services & application middlewares
-  const mongooseClient: mongoose.Mongoose = await mongoose.connect(config.mongo);
   app.userService = new UserService(mongooseClient);
   app.authService = new AuthService({
     jwt: {

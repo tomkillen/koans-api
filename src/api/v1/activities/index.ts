@@ -3,6 +3,7 @@ import { bearerAuth } from "../../../services/auth/auth.middleware";
 import { Schema, checkSchema, header, matchedData, validationResult } from "express-validator";
 import { ActivitiesSortByKey } from "../../../services/activity/activity.service";
 import { SortOrder } from "mongoose";
+import logger from "../../../utilities/logger";
 
 const queryActivitiesSchema: Schema = {
   page: {
@@ -64,12 +65,12 @@ const queryActivitiesSchema: Schema = {
   },
   sort: {
     in: 'query',
-    isIn: { options: [ 'created', 'title', 'category', 'duration', 'difficulty' ] },
+    isIn: { options: [[ 'created', 'title', 'category', 'duration', 'difficulty' ]] },
     optional: true,
   },
   order: {
     in: 'query',
-    isIn: { options: [ 'asc', 'desc', 1, -1, 'ascending', 'descending' ] },
+    isIn: { options: [[ 'asc', 'desc', 1, -1, 'ascending', 'descending' ]] },
     optional: true,
   },
   completed: {
@@ -104,8 +105,11 @@ const getDifficulty = (difficulty: number | Difficulty): number => {
 const activities = (): Router => {
   const router = Router();
   const path = '/activities';
+
+  // GET /activities
+  // Supports filtering and searching available activities
   router.get(path,
-    header('authorization').isJWT(),
+    header('authorization'),
     bearerAuth,
     checkSchema(queryActivitiesSchema),
     async (req: Request, res: Response) => {

@@ -23,22 +23,35 @@ export const OpenApiSpec = (() => {
 const docs = (): Router => {
   const router = Router();
 
-  // route '/api-docs' to return the OpenAPI spec
+  // GET /api-docs
+  // Serves our OpenAPI spec
   router.get('/api-docs', function(req, res) {
     if (req.accepts('yaml')) {
       // See https://www.rfc-editor.org/rfc/rfc9512.html
-      // Defines the mimetype yaml as 'application/yaml'
+      // Defines the mimetype for yaml as 'application/yaml'
       // as of February 2024 so we should prefer that now
-      res.setHeader('Content-Type', 'text/yaml');
+      // But this RFC is very recent and most browsers will
+      // treat it as a download which is inconvenient so
+      // use text/yaml if they don't accept application/yaml
+      if (req.accepts('application/yaml')) {
+        res.setHeader('Content-Type', 'application/yaml');
+      } else {
+        res.setHeader('Content-Type', 'text/yaml');
+      }
       res.status(200).send(YAML.stringify(OpenApiSpec, null, 2));
     } else {
-      // Default to JSON
+      // Default to JSON if YAML is not accepted
       res.setHeader('Content-Type', 'application/json');
       res.status(200).send(JSON.stringify(OpenApiSpec, null, 2));
     }
   });
 
-  // route '/api-docs/swagger' to return Swagger UI
+  // GET '/api-docs/swagger'
+  // Serve swagger UI
+  // Commentary: I really would have prefered to use https://www.npmjs.com/package/swagger-ui-dist
+  //             but it was too hard to get working with a Server-Side app (vs a SPA, e.g. with React).
+  //             I've done projects in the past where I serve it as a react component and it's much
+  //             nicer. But I didn't get it working so here you have the old swagger ui. Enjoy.
   router.use(
     '/api-docs/swagger',
     SwaggerUI.serve,

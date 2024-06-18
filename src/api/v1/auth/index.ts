@@ -9,8 +9,9 @@ const auth = (): Router => {
   const router = Router();
   const path = '/auth';
 
-  // Basic auth handler
-  // expects Authorization: Basic <username>:<password>
+  // GET /auth
+  // Get a JWT access token using Basic Auth
+  // expects header: Authorization: Basic <username>:<password>
   router.get(
     path,
     basicAuth,
@@ -27,6 +28,13 @@ const auth = (): Router => {
     }
   );
 
+  // POST /auth
+  // Get a JWT access token by posting credentials
+  // Expects:
+  //  oneOf:
+  //    - body: { username: string, password: string }
+  //    - body: { email: string, password: string }
+  //    - body: { id: string, password: string }
   router.post(
     path,
     json(),

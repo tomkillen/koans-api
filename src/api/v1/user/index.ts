@@ -11,9 +11,11 @@ const user = (): Router => {
   const path = '/user';
   const router = Router();
 
+  // GET /user
+  // Get the current active users information
   router.get(
     path,
-    header('authorization').isJWT(),
+    header('authorization'),
     bearerAuth,
     (_, res) => {
       if (res.locals.user) {
@@ -30,6 +32,9 @@ const user = (): Router => {
     },
   );
 
+  // POST /user
+  // Register a new user
+  // expects: body: { username: string, email: string (valid email), password: string }
   router.post(
     path,
     json(),
@@ -90,9 +95,13 @@ const user = (): Router => {
       }
     },
   );
+
+  // PATCH /user
+  // Updates the current users details
+  // expects: body: { username?: string, email?: string, password?: string }
   router.patch(
     path,
-    header('authorization').isJWT(),
+    header('authorization'),
     bearerAuth,
     json(),
     body('username').isString().optional(),
@@ -131,9 +140,11 @@ const user = (): Router => {
     },
   );
 
+  // DELETE /user
+  // Deletes the current user
   router.delete(
     path,
-    header('authorization').isJWT(),
+    header('authorization'),
     bearerAuth,
     async (req, res) => {
       if (res.locals.user) {

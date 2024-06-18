@@ -2,12 +2,14 @@ import { createServer } from 'http';
 import logger from './utilities/logger';
 import Config from './config/Config';
 import App from './App';
+import mongoose from 'mongoose';
 
 /**
  * Server for the Koans API
  */
 const Server = async (config: Config) => {
-  const server = createServer(await App(config));
+  const mongooseClient: mongoose.Mongoose = await mongoose.connect(config.mongo);
+  const server = createServer(await App(mongooseClient));
 
   return {
     /**
@@ -35,7 +37,7 @@ const Server = async (config: Config) => {
       return new Promise((resolve, reject) => {
         // tell the server to start shutting down and wait for it to finish
         // callback contains an error if the server was not started
-        server.close((err) => {
+        server.close(async (err) => {
           if (err) {
             // the server was not started
             logger.warning('failed to stop server with error: %s. Was the server started?', err);
@@ -43,7 +45,14 @@ const Server = async (config: Config) => {
           } else {
             // the server has finished closing
             logger.info('Stopped server')
-            resolve();
+            logger.info('Stopping mongoose client...');
+            try {
+              await mongooseClient.disconnect();
+            } catch (err) {
+              logger.warning(`Failed to disconnect mongoose client: ${err}`);
+            } finally {
+              resolve();
+            }
           }
         });
       });

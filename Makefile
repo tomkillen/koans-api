@@ -218,7 +218,7 @@ endif
 # we could also run an in-memory mongo database but I like this better
 # since it's closer to the real thing
 .PHONY: dev-start
-dev-start:
+dev-start: test
 	$(MAKE) dev-mongo-up
 	npm run start:dev:watch || true
 

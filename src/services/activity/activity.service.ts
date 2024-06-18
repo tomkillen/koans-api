@@ -41,7 +41,7 @@ export type GetActivitiesRequestDTO = {
   sortBy?: ActivitiesSortBy | ActivitiesSortBy[];
 };
 
-const ActivityServiceErrors = {
+export const ActivityServiceErrors = {
   ActivityNotFound: 'Activity not found',
   CategoryNotFound: 'Category not found',
 };

@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 
 /**
- * Converts a Mongo ObjectId to a base64 encoded string
+ * Converts a Mongo ObjectId to a hexadecimal encoded string
  * @param objectId Mongo ObjectId
- * @returns base64 encoded version of the objectId
+ * @returns hexadecimal encoded version of the objectId
  */
-const objectIdToString = (objectId: mongoose.Types.ObjectId): string => objectId.toString('base64');
+const objectIdToString = (objectId: mongoose.Types.ObjectId): string => objectId.toHexString();
 
 export default objectIdToString;

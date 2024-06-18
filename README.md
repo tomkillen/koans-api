@@ -7,16 +7,27 @@ A kōan is a story, dialogue, question, or statement from the Chinese Chan-lore,
 ## Quick start
 
 ```shell
+## Option 1 - Docker
+
 # Build & run the service using docker compose, installing dependencies to ./bin as required
 # if make is available, it is preferred to use make since the make command will install a pinned
 # version of docker compose to ./bin/docker-compose, which aids future maintenance by using
 # pinned tool versions.
 make start
 
+## Option 2 - run locally, also with Docker
+
+# Spins up Mongo & Mongo Express in Docker but runs the server as a local app. If you want to inspect logs or do further development, this is more convenient.
+make dev-start
+
+## Option 3 - Docker, without Make
+
 # OR, if make is not available, or if you don't want to install a copy of docker-compose to
 # `./bin`, you can run the app directly using docker
 docker compose up
 ```
+
+OpenAPI specification available at [./src/api/docs/openapi.yaml](src/api/docs/openapi.yaml) (Command + Click)
 
 The stack will then launch and the API will be available at <http://localhost/v1/>
 

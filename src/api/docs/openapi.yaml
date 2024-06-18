@@ -8,6 +8,8 @@ info:
 servers:
 - url: /v1
 tags:
+- name: admin
+  description: operations restricted to admin users
 - name: auth
   description: Manage authentication
 - name: user
@@ -149,7 +151,7 @@ components:
           description: Time the activity was created
           type: string
           examples:
-          - 2011-09-07T08:37:37Z
+          - '2011-09-07T08:37:37Z'
         title:
           description: Title of the activity
           type: string
@@ -210,7 +212,7 @@ components:
           - 100
           minimum: 0
         activities:
-          $ref: "#/components/schemas/Activity"
+          $ref: '#/components/schemas/Activity'
     LoginWithId:
       type: object
       required:
@@ -314,7 +316,7 @@ components:
           type: string
           description: the users created timestamp
           examples:
-          - 2011-09-07T08:37:37Z
+          - '2011-09-07T08:37:37Z'
         roles:
           type: array
           items:
@@ -343,22 +345,55 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/page"
-        - $ref: "#/components/parameters/pageSize"
-        - $ref: "#/components/parameters/query"
-        - $ref: "#/components/parameters/category"
-        - $ref: "#/components/parameters/duration"
-        - $ref: "#/components/parameters/difficulty"
-        - $ref: "#/components/parameters/sort"
-        - $ref: "#/components/parameters/order"
-        - $ref: "#/components/parameters/completed"
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/query'
+        - $ref: '#/components/parameters/category'
+        - $ref: '#/components/parameters/duration'
+        - $ref: '#/components/parameters/difficulty'
+        - $ref: '#/components/parameters/sort'
+        - $ref: '#/components/parameters/order'
+        - $ref: '#/components/parameters/completed'
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SearchActivitiesResults"
+                $ref: '#/components/schemas/SearchActivitiesResults'
+  /activities/{id}:
+    get:
+      summary: Get information about an activity
+      tags:
+      - activity
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+    delete:
+      summary: Deletes the specified activity
+      tags:
+      - admin
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Activity deleted
+        '400':
+          description: Bad Request
+        '401':
+          description: Not Authorized
+        '404':
+          description: Not Found
   /auth:
     get:
       summary: Gets an access token using Basic auth
@@ -367,7 +402,7 @@ paths:
       security:
       - basicAuth: []
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
@@ -379,7 +414,7 @@ paths:
                   access_token:
                     type: string
                     description: access token that can be used for Bearer authentication
-        "401":
+        '401':
           description: Not Authorized
     post:
       summary: Gets an access token using the supplied user credentials
@@ -392,11 +427,11 @@ paths:
           application/json:
             schema:
               oneOf:
-              - $ref: "#/components/schemas/LoginWithUsername"
-              - $ref: "#/components/schemas/LoginWithEmail"
-              - $ref: "#/components/schemas/LoginWithId"
+              - $ref: '#/components/schemas/LoginWithUsername'
+              - $ref: '#/components/schemas/LoginWithEmail'
+              - $ref: '#/components/schemas/LoginWithId'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
@@ -408,7 +443,7 @@ paths:
                   access_token:
                     type: string
                     description: access token that can be used for Bearer authentication
-        "401":
+        '401':
           description: Not Authorized
   /user:
     get:
@@ -418,13 +453,13 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        "200":
+        '200':
           description: Information about a single user
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GetUserResponse"
-        "401":
+                $ref: '#/components/schemas/GetUserResponse'
+        '401':
           description: no current user is authenticated
     post:
       summary: creates a new user
@@ -436,19 +471,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateUserRequest"
+              $ref: '#/components/schemas/CreateUserRequest'
       responses:
-        "201":
+        '201':
           description: created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreateUserResponse"
-        "400":
+                $ref: '#/components/schemas/CreateUserResponse'
+        '400':
           description: missing or malformed data
-        "401":
+        '401':
           description: a user is already logged in
-        "409":
+        '409':
           description: a user with the provided username or email already exists
     patch:
       summary: updates the current user
@@ -461,15 +496,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateUserRequest"
+              $ref: '#/components/schemas/UpdateUserRequest'
       responses:
-        "204":
+        '204':
           description: user updated
-        "400":
+        '400':
           description: missing or malformed data
-        "401":
+        '401':
           description: no user is logged in
-        "409":
+        '409':
           description: a user with the provided username or email already exists
     delete:
       summary: delete the current user
@@ -478,7 +513,7 @@ paths:
       security:
       - bearerAuth: []
       responses:
-        "204":
+        '204':
           description: user deleted
-        "401":
+        '401':
           description: no user is logged in

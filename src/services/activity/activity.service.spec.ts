@@ -24,7 +24,7 @@ testActivities.forEach((activity, i) => {
 const testCategories = [...new Set(testActivities.map(activity => activity.category))];
 
 describe('activity.service', () => {
-  let mongooseClient: Mongoose | null = null; 
+  let mongooseClient: Mongoose | null = null;
   let activityService: ActivityService | null = null;
 
   beforeAll(async () => {
