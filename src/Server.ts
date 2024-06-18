@@ -7,6 +7,7 @@ import Config from './config/Config';
 import UserService from './services/user/user.service';
 import mongoose from 'mongoose';
 import AuthService from './services/auth/auth.service';
+import ActivityService from './services/activity/activity.service';
 
 /**
  * Server for the Koans API
@@ -25,6 +26,14 @@ const Server = async (config: Config) => {
     },
     userService: root.userService,
   });
+  root.activityService = new ActivityService(mongooseClient);
+
+  // Ensure the database is ready for user before starting the server
+  // Prevents race conditions with unique inserts before index has been built
+  await Promise.all([
+    root.userService.prepare(),
+    root.activityService.prepare(),
+  ]);
 
   const server = createServer(root);
 
