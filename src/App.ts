@@ -8,7 +8,7 @@ import AuthService from './services/auth/auth.service';
 import ActivityService from './services/activity/activity.service';
 
 /**
- * Server for the Koans API
+ * express.Application for the Koans API
  */
 const App = async (config: Config) => {
   const app = express();
