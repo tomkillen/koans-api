@@ -1,3 +1,4 @@
+name: koans-api
 services:
   # Koans API
   app:

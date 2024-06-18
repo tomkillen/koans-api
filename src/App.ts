@@ -6,6 +6,7 @@ import UserService from './services/user/user.service';
 import mongoose from 'mongoose';
 import AuthService from './services/auth/auth.service';
 import ActivityService from './services/activity/activity.service';
+import populateDatabase from './helpers/populateDatabase';
 
 /**
  * express.Application for the Koans API
@@ -32,6 +33,13 @@ const App = async (config: Config) => {
     app.userService.prepare(),
     app.activityService.prepare(),
   ]);
+
+  // DEBUG & Demonstration
+  // Populate the database with some dummy data
+  // In a production environment I would use some migration strategy
+  // where documents & schema updates are applied sequentially, with a record
+  // keeping table to track which migrations have been applied
+  await populateDatabase(app.userService, app.activityService);
 
   // Setup permissive CORS policy since we aren't restricting usage of this API
   app.use(cors({

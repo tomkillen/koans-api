@@ -1,4 +1,6 @@
 # Helper docker-compose that creates an exposed mongo db for development purposes
+# Runs mongo with a port exposed & mongo-express to inspect data
+name: koans-test
 services:
   # Mongo DB to provide persistent data storage
   mongo:

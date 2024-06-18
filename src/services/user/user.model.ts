@@ -3,6 +3,7 @@ import { Model, Document, Schema, model, Types } from "mongoose";
 // bcrypt is a decent balance between hardness and processing intensivity
 // maybe not "military grade" but it's pretty good
 import bcrypt from 'bcrypt';
+import Role from "../auth/auth.roles";
 
 // 10 salt rounds are recommended to stay above GPU cracking capabilities
 // but it comes at a cost. 10 rounds means ~10 hashes per second, whereas 8 
@@ -32,14 +33,17 @@ export const UserValidationErrors = {
   },
 };
 
-export type IUser = {
-  _id: Types.ObjectId;
+export type UserInfo = {
   username: string;
   email: string;
   password: string;
-  roles?: string[];
+  roles?: Role[];
+};
+
+export type IUser = {
+  _id: Types.ObjectId;
   comparePassword: (compareTo: string) => Promise<boolean>;
-} & Document;
+} & UserInfo & Document;
 
 
     // eslint-disable-next-line @typescript-eslint/consistent-generic-constructors
