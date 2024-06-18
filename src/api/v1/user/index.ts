@@ -81,6 +81,8 @@ import { UserServiceErrors } from "../../../services/user/user.service";
  *   /user:
  *     get:
  *       summary: get the current users information
+ *       tags:
+ *         - user
  *       security:
  *         - bearerAuth: []
  *       responses:  
@@ -94,6 +96,8 @@ import { UserServiceErrors } from "../../../services/user/user.service";
  *           description: no current user is authenticated
  *     post:
  *       summary: creates a new user
+ *       tags:
+ *         - user
  *       requestBody:
  *         description: information of the user to be created
  *         required: true
@@ -116,6 +120,8 @@ import { UserServiceErrors } from "../../../services/user/user.service";
  *           description: a user with the provided username or email already exists
  *     patch:
  *       summary: updates the current user
+ *       tags:
+ *         - user
  *       security:
  *         - bearerAuth: []
  *       requestBody:
@@ -135,6 +141,8 @@ import { UserServiceErrors } from "../../../services/user/user.service";
  *           description: a user with the provided username or email already exists
  *     delete:
  *       summary: delete the current user
+ *       tags:
+ *         - user
  *       security:
  *         - bearerAuth: []
  *       responses:  

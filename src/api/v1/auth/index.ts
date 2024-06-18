@@ -46,6 +46,8 @@ import { body, oneOf, validationResult } from "express-validator";
  *   /auth:
  *     get:
  *       summary: Gets an access token using Basic auth
+ *       tags:
+ *         - auth
  *       security:
  *         - basicAuth: []
  *       responses:
@@ -65,6 +67,8 @@ import { body, oneOf, validationResult } from "express-validator";
  *           description: Not Authorized
  *     post:
  *       summary: Gets an access token using the supplied user credentials
+ *       tags:
+ *         - auth
  *       requestBody:
  *         description: Provide the user credentials to use for authentication
  *         required: true

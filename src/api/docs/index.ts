@@ -4,6 +4,7 @@ import SwaggerUI from 'swagger-ui-express';
 import YAML from 'yaml';
 import Config from "../../config/Config";
 
+
 /**
  * Creates a router that handles serving api documentation
  * route '/api-docs' serves the OpenAPI specification
@@ -19,8 +20,6 @@ const docs = (config: Config): Router => {
     failOnErrors: true,
     definition: {
       openapi: '3.0.0',
-      host: config.hostname,
-      basePath: config.hostname,
       info: {
         title: 'Koans API',
         description: 'A REST API designed to promote relaxation, boost self-esteem, improve productivity, enhance physical health, and foster social connections.',
@@ -42,6 +41,16 @@ const docs = (config: Config): Router => {
       servers: [{
         url: `http://${config.hostname}/v1`,
       }],
+      tags: [{
+        name: 'auth',
+        description: 'Manage authentication'
+      }, {
+        name: 'user',
+        description: 'User & profile management',
+      }, {
+        name: 'activities',
+        description: 'Search & manage activities',
+      }]
     },
     apis: [ '**/index.js', '**/index.ts' ],
   });
@@ -52,7 +61,7 @@ const docs = (config: Config): Router => {
       // See https://www.rfc-editor.org/rfc/rfc9512.html
       // Defines the mimetype yaml as 'application/yaml'
       // as of February 2024 so we should prefer that now
-      res.setHeader('Content-Type', 'application/yaml');
+      res.setHeader('Content-Type', 'text/yaml');
       res.status(200).send(YAML.stringify(apiSpec, null, 2));
     } else {
       // Default to JSON
@@ -67,7 +76,6 @@ const docs = (config: Config): Router => {
     SwaggerUI.serve,
     SwaggerUI.setup(apiSpec),
   );
-
   return router;
 }
 

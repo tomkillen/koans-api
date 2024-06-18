@@ -263,6 +263,8 @@ const getDifficulty = (difficulty: number | Difficulty): number => {
  *  /activities:
  *    get:
  *      summary: search available activities
+ *      tags:
+ *        - activities
  *      security:
  *        - bearerAuth: []
  *      parameters:
