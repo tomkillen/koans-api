@@ -213,7 +213,6 @@ endif
 dev-start:
 	$(MAKE) dev-mongo-up
 	npm run start:dev:watch || true
-	$(MAKE) dev-mongo-stop
 
 # Run an exposed mongo db instance for local development purposes
 .PHONY: dev-mongo-up

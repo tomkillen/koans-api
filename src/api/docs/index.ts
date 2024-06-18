@@ -18,7 +18,7 @@ const docs = (config: Config): Router => {
   const apiSpec = swaggerJSDoc({
     failOnErrors: true,
     definition: {
-      openapi: '3.1.0',
+      openapi: '3.0.0',
       host: config.hostname,
       basePath: config.hostname,
       info: {

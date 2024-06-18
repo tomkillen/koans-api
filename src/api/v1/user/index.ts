@@ -1,5 +1,5 @@
 import { Router, json } from "express";
-import { body, header, validationResult } from "express-validator";
+import { body, header, matchedData, validationResult } from "express-validator";
 import { bearerAuth } from "../../../services/auth/auth.middleware";
 import logger from "../../../utilities/logger";
 import { UserServiceErrors } from "../../../services/user/user.service";
@@ -149,7 +149,7 @@ const user = (): Router => {
 
   router.get(
     path,
-    json(),
+    header('authorization').isJWT(),
     bearerAuth,
     (_, res) => {
       if (res.locals.user) {
@@ -170,7 +170,7 @@ const user = (): Router => {
     path,
     json(),
     // Check that no current authorization exists, no current user
-    header('Authorization')
+    header('authorization')
       .not()
       .exists(),
     // If a user is currently logged in, reject the request
@@ -196,27 +196,29 @@ const user = (): Router => {
     },
     // Attempt to create the user
     async (req, res, next) => {
-      const username: string = req.body.username;
-      const email: string = req.body.email;
-      const password: string = req.body.password;
+      const userData = matchedData<{ 
+        username: string;
+        email: string;
+        password: string;
+      }>(req);
       try {
         // Ensure user does not already exist with this username and email
-        if (await req.app.userService.getUser({ username }) !== null) {
+        if (await req.app.userService.getUser({ username: userData.username }) !== null) {
           return res.status(409).send('User already exists').end();
         }
-        if (await req.app.userService.getUser({ email }) !== null) {
+        if (await req.app.userService.getUser({ email: userData.email }) !== null) {
           return res.status(409).send('User already exists').end();
         }
 
         // Create the user
         const id = await req.app.userService.createUser({
-          username,
-          email,
-          password
+          username: userData.username,
+          email: userData.email,
+          password: userData.password
         });
 
         // Authorize the user that was just created (login upon create)
-        const access_token = await req.app.authService.getAuthTokenForUser(id, password);
+        const access_token = await req.app.authService.getAuthTokenForUser(id, userData.password);
 
         return res.status(201).json({ id, access_token }).end();
       } catch (err) {
@@ -226,6 +228,7 @@ const user = (): Router => {
   );
   router.patch(
     path,
+    header('authorization').isJWT(),
     bearerAuth,
     json(),
     body('username').isString().optional(),
@@ -233,15 +236,17 @@ const user = (): Router => {
     body('password').isString().optional(),
     async (req, res) => {
       if (res.locals.user) {
-        const username: string | undefined = req.body.username;
-        const email: string | undefined = req.body.email;
-        const password: string | undefined = req.body.password;
-        if (username || email || password) {
+        const userData = matchedData<{ 
+          username?: string;
+          email?: string;
+          password?: string;
+        }>(req);
+        if (userData.username || userData.email || userData.password) {
           try {
             await req.app.userService.updateUser(res.locals.user.id, {
-              username,
-              email,
-              password
+              username: userData.username,
+              email: userData.email,
+              password: userData.password,
             });
           } catch (err) {
             if (err instanceof Error && (
@@ -264,6 +269,7 @@ const user = (): Router => {
 
   router.delete(
     path,
+    header('authorization').isJWT(),
     bearerAuth,
     async (req, res) => {
       if (res.locals.user) {

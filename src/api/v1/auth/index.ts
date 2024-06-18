@@ -63,7 +63,6 @@ import { body, oneOf, validationResult } from "express-validator";
  *                     description: access token that can be used for Bearer authentication
  *         401:
  *           description: Not Authorized
- *           summary: Either the user does not exist or the credentials are not valid
  *     post:
  *       summary: Gets an access token using the supplied user credentials
  *       requestBody:
@@ -91,7 +90,6 @@ import { body, oneOf, validationResult } from "express-validator";
  *                     description: access token that can be used for Bearer authentication
  *         401:
  *           description: Not Authorized
- *           summary: Either the user does not exist or the credentials are not valid
  */
 const auth = (): Router => {
   const router = Router();
