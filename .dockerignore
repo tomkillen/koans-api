@@ -5,6 +5,7 @@
 !package*.json
 !tsconfig.json
 !src
+!typings
 
 # Don't ignore these files which are important for Docker
 !.dockeringore

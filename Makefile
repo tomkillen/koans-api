@@ -65,7 +65,7 @@ endif
 
 # Do everything required to setup & run the app, including initializing the current working environment
 .PHONY: start
-start: setup-env docker-compose-up
+start: setup-env docker-compose-build-nocache docker-compose-up
 
 # Similar to start, but more light-weight. Assume the environment is already setup
 .PHONY: run

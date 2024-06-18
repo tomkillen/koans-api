@@ -4,11 +4,15 @@ services:
     build:
       dockerfile: Dockerfile
     restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
     ports:
       - 80:3000
     environment:
       - NODE_ENV=development
       - KOANS_PORT=3000
+      - KOANS_MONGO_URI=mongodb://koans:koans@mongo:27017/koans
 
   # Mongo DB to provide persistent data storage
   mongo:
@@ -26,10 +30,10 @@ services:
     restart: unless-stopped
     healthcheck: 
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 20s
+      interval: 5s
       timeout: 5s
-      retries: 3
-      start_period: 10s
+      retries: 10
+      start_period: 15s
     environment:
       # Commentary:
       # Objective 1 - Allow sensitive data to be injected at buildtime
@@ -49,7 +53,7 @@ services:
     # access to the "koans" db only so we aren't using root mongo credentials in the server.
     # In a production-ready service, it might be better to initialize the mongo db using 
     # an init container but for local development we can use mongo's support of init scripts
-    - ./mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    - ./mongo/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:ro
     # For persistent database storage we could map a project directory to the mongo service
 
   # Commentary:
@@ -63,22 +67,24 @@ services:
   # The reason why I would normally separate it like that is to improve iteration time and reduce 
   # CPU load when running the development stack and improve iteration time by reducing the amount
   # of work the CPU & network needs to do to run the development stack.
-  mongo-express:
-    # Commentary:
-    # mongo-express launches faster than mongo, which isn't an important problem but it results
-    # in some errors being logged as mongo-express attempts and fails to connect a couple of times
-    # and I don't like seeing extraneous errors in my logs even if they are ignorable errors
-    # so let's make the dependency explicit so that docker waits for mongo to be healthy before
-    # starting mongo-express
-    depends_on:
-      mongo:
-        condition: service_healthy
-    image: mongo-express:1.0
-    restart: unless-stopped
-    ports:
-    - 8081:8081
-    environment:
-      ME_CONFIG_MONGODB_AUTH_USERNAME: ${ME_CONFIG_MONGODB_ADMINUSERNAME:-admin}
-      ME_CONFIG_MONGODB_AUTH_PASSWORD: ${ME_CONFIG_MONGODB_ADMINPASSWORD:-admin}
-      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME:-root}:${MONGO_INITDB_ROOT_PASSWORD:-root}@mongo:27017/
-      ME_CONFIG_BASICAUTH: false
+  
+  ### Uncomment this block to enable mongo-express on port 8081
+  # mongo-express:
+  #   # Commentary:
+  #   # mongo-express launches faster than mongo, which isn't an important problem but it results
+  #   # in some errors being logged as mongo-express attempts and fails to connect a couple of times
+  #   # and I don't like seeing extraneous errors in my logs even if they are ignorable errors
+  #   # so let's make the dependency explicit so that docker waits for mongo to be healthy before
+  #   # starting mongo-express
+  #   depends_on:
+  #     mongo:
+  #       condition: service_healthy
+  #   image: mongo-express:1.0
+  #   restart: unless-stopped
+  #   ports:
+  #   - 8081:8081
+  #   environment:
+  #     ME_CONFIG_MONGODB_AUTH_USERNAME: ${ME_CONFIG_MONGODB_ADMINUSERNAME:-admin}
+  #     ME_CONFIG_MONGODB_AUTH_PASSWORD: ${ME_CONFIG_MONGODB_ADMINPASSWORD:-admin}
+  #     ME_CONFIG_MONGODB_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME:-root}:${MONGO_INITDB_ROOT_PASSWORD:-root}@mongo:27017/
+  #     ME_CONFIG_BASICAUTH: false
