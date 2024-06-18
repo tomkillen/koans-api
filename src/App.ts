@@ -51,7 +51,7 @@ const App = async (config: Config) => {
   }));
 
   // Add api router
-  app.use(api(config));
+  app.use(api());
 
   // Catch-all not found handler
   app.all('*', (_, res) => {

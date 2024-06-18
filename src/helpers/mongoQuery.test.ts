@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-useless-escape */
+
 import { describe, expect, test } from "@jest/globals";
 import { numberOrRangeToNumberFilter, sortOrder, textSearchFromSearchString, textSearchFromSearchTerms } from "./mongoQuery";
 

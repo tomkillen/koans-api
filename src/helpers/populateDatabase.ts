@@ -1,8 +1,6 @@
 import ActivityService from "../services/activity/activity.service";
-import AuthService from "../services/auth/auth.service";
 import { UserInfo } from "../services/user/user.model";
 import UserService from "../services/user/user.service";
-import logger from "../utilities/logger";
 import generateActivity from "./generateActivity";
 
 const users: UserInfo[] = [{

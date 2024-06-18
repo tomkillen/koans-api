@@ -42,7 +42,7 @@ export type IActivity = {
   _id: Types.ObjectId;
 } & Document & ActivityInfo;
 
-const ActivitySchema: Schema<IActivity> = new Schema({
+const ActivitySchema = new Schema<IActivity>({
   title: {
     type: String,
     required: [ true, ActivityValidationErrors.Title.Missing ],

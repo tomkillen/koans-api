@@ -1,59 +1,27 @@
 import { Router } from "express";
-import swaggerJSDoc from "swagger-jsdoc";
 import SwaggerUI from 'swagger-ui-express';
 import YAML from 'yaml';
-import Config from "../../config/Config";
+import fs from 'fs';
+import path from 'path';
+import logger from "../../utilities/logger";
 
+export const OpenAPISpecPath = path.join(__dirname, 'openapi.yaml');
+export const OpenApiSpec = (() => {
+  try {
+    return YAML.parse(fs.readFileSync(OpenAPISpecPath, 'utf-8'));
+  } catch (err) {
+    logger.warning(`error loading openapi.yaml: ${err}`);
+    return {};
+  }
+})();
 
 /**
  * Creates a router that handles serving api documentation
  * route '/api-docs' serves the OpenAPI specification
  * route '/api-docs/swagger' serves Swagger UI
- * @returns Router for the API
  */
-
-const docs = (config: Config): Router => {
+const docs = (): Router => {
   const router = Router();
-
-  // Configure our API spec
-  const apiSpec = swaggerJSDoc({
-    failOnErrors: true,
-    definition: {
-      openapi: '3.0.0',
-      info: {
-        title: 'Koans API',
-        description: 'A REST API designed to promote relaxation, boost self-esteem, improve productivity, enhance physical health, and foster social connections.',
-        version: '0.1.0',
-      },
-      components: {
-        securitySchemes: {
-          basicAuth: {
-            type: 'http',
-            scheme: 'basic',
-          },
-          bearerAuth: {
-            type: 'http',
-            scheme: 'bearer',
-            bearerFormat: 'JWT'
-          },
-        },
-      },
-      servers: [{
-        url: `http://${config.hostname}/v1`,
-      }],
-      tags: [{
-        name: 'auth',
-        description: 'Manage authentication'
-      }, {
-        name: 'user',
-        description: 'User & profile management',
-      }, {
-        name: 'activities',
-        description: 'Search & manage activities',
-      }]
-    },
-    apis: [ '**/index.js', '**/index.ts' ],
-  });
 
   // route '/api-docs' to return the OpenAPI spec
   router.get('/api-docs', function(req, res) {
@@ -62,11 +30,11 @@ const docs = (config: Config): Router => {
       // Defines the mimetype yaml as 'application/yaml'
       // as of February 2024 so we should prefer that now
       res.setHeader('Content-Type', 'text/yaml');
-      res.status(200).send(YAML.stringify(apiSpec, null, 2));
+      res.status(200).send(YAML.stringify(OpenApiSpec, null, 2));
     } else {
       // Default to JSON
       res.setHeader('Content-Type', 'application/json');
-      res.status(200).send(JSON.stringify(apiSpec, null, 2));
+      res.status(200).send(JSON.stringify(OpenApiSpec, null, 2));
     }
   });
 
@@ -74,10 +42,9 @@ const docs = (config: Config): Router => {
   router.use(
     '/api-docs/swagger',
     SwaggerUI.serve,
-    SwaggerUI.setup(apiSpec),
+    SwaggerUI.setup(OpenApiSpec),
   );
   return router;
 }
-
 
 export default docs;

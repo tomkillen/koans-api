@@ -98,6 +98,10 @@ clean-all: clean clean-bin clean-env
 lint:
 	npm run lint
 
+.PHONY: check-dependencies
+check-dependencies:
+	npx depcheck
+
 .PHONY: test
 test:
 	npm test
@@ -209,6 +213,10 @@ endif
 	$(MAKE) setup-env
 
 ### Development - commands that enable running locally outside of docker
+
+# Run the api locally & spin up a mongo server in docker for debugging
+# we could also run an in-memory mongo database but I like this better
+# since it's closer to the real thing
 .PHONY: dev-start
 dev-start:
 	$(MAKE) dev-mongo-up

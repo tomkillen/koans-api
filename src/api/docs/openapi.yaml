@@ -1,0 +1,484 @@
+openapi: 3.1.0
+info:
+  title: Koans API
+  description: A REST API designed to promote relaxation, boost self-esteem,
+    improve productivity, enhance physical health, and foster social
+    connections.
+  version: 0.1.0
+servers:
+- url: /v1
+tags:
+- name: auth
+  description: Manage authentication
+- name: user
+  description: User & profile management
+- name: activities
+  description: Search & manage activities
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    page:
+      name: page
+      in: query
+      required: false
+      description: Which page of results to load
+      schema:
+        type: integer
+        minimum: 1
+        examples:
+        - 1
+        default: 1
+    pageSize:
+      name: pageSize
+      in: query
+      required: false
+      description: How many results to load per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        examples:
+        - 10
+        default: 10
+    query:
+      name: query
+      in: query
+      required: false
+      description: Search activities containing these terms
+      schema:
+        type: string
+        examples:
+        - Relaxing
+    category:
+      name: category
+      in: query
+      required: false
+      description: Filter by category or categories
+      schema:
+        oneOf:
+        - type: string
+        - type: array
+          items:
+            type: string
+    difficulty:
+      name: difficulty
+      in: query
+      required: false
+      description: Specify a minimum difficulty
+      schema:
+        oneOf:
+        - type: string
+          enum:
+          - easy
+          - medium
+          - difficult
+          - challenging
+          - extreme
+        - type: integer
+          minimum: 1
+          maximum: 5
+          default: 1
+    duration:
+      name: duration
+      in: query
+      required: false
+      description: Specifiy a minimum duration (seconds)
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    sort:
+      name: sort
+      in: query
+      required: false
+      description: Sort results
+      schema:
+        type: string
+        enum:
+        - created
+        - title
+        - category
+        - duration
+        - difficulty
+        default: title
+    order:
+      name: order
+      in: query
+      required: false
+      description: Set the direction of sorting
+      schema:
+        type: string
+        enum:
+        - asc
+        - desc
+        - ascending
+        - descending
+        default: asc
+    completed:
+      name: completed
+      in: query
+      required: false
+      description: Limit to activities you have completed
+      schema:
+        type: boolean
+        default: false
+  schemas:
+    Activity:
+      type: object
+      required:
+      - id
+      - created
+      - title
+      - category
+      - description
+      - duration
+      - difficulty
+      - content
+      properties:
+        id:
+          description: Activity identifier
+          type: string
+        created:
+          description: Time the activity was created
+          type: string
+          examples:
+          - 2011-09-07T08:37:37Z
+        title:
+          description: Title of the activity
+          type: string
+          examples:
+          - A relaxing jog
+        category:
+          description: Category of the activity
+          type: string
+          examples:
+          - Relaxation
+        description:
+          description: A description of the activity
+          type: string
+          examples:
+          - Go for a long jog and clear your mind
+        duration:
+          description: The duration of the activity, in seconds
+          type: integer
+          examples:
+          - 60
+          minimum: 0
+        difficulty:
+          description: The difficulty rating of the activity
+          type: integer
+          examples:
+          - 1
+          minimum: 1
+          maximum: 5
+        content:
+          description: Detailed information about an activity
+          type: string
+          examples:
+          - Content can be very long, often many paragraphs
+    SearchActivitiesResults:
+      type: object
+      required:
+      - page
+      - pageSize
+      - total
+      - activities
+      properties:
+        page:
+          description: The current page of results
+          type: integer
+          examples:
+          - 1
+          minimum: 1
+        pageSize:
+          description: How many results per page
+          type: integer
+          examples:
+          - 10
+          minimum: 1
+        total:
+          description: The total number of results available
+          type: integer
+          examples:
+          - 100
+          minimum: 0
+        activities:
+          $ref: "#/components/schemas/Activity"
+    LoginWithId:
+      type: object
+      required:
+      - id
+      - password
+      properties:
+        id:
+          type: string
+          examples:
+          - <user id>
+        password:
+          type: string
+          examples:
+          - password
+    LoginWithUsername:
+      type: object
+      required:
+      - username
+      - password
+      properties:
+        username:
+          type: string
+          examples:
+          - username
+        password:
+          type: string
+          examples:
+          - password
+    LoginWithEmail:
+      type: object
+      required:
+      - email
+      - password
+      properties:
+        email:
+          type: string
+          examples:
+          - email@example.com
+        password:
+          type: string
+          examples:
+          - password
+    CreateUserRequest:
+      type: object
+      required:
+      - username
+      - email
+      - password
+      properties:
+        username:
+          type: string
+          examples:
+          - username
+        email:
+          type: string
+          examples:
+          - email@example.com
+        password:
+          type: string
+          examples:
+          - password
+    CreateUserResponse:
+      type: object
+      required:
+      - id
+      - access_token
+      properties:
+        id:
+          type: string
+          examples:
+          - 1234
+          description: users id
+        access_token:
+          type: string
+          description: user access token suitable for Bearer auth (user is logged in upon
+            create)
+    GetUserResponse:
+      type: object
+      required:
+      - id
+      - username
+      - email
+      - created
+      properties:
+        id:
+          type: string
+          description: user id
+          examples:
+          - 1234
+        username:
+          type: string
+          description: the users username
+          examples:
+          - user
+        email:
+          type: string
+          description: the users email
+          examples:
+          - user@example.com
+        created:
+          type: string
+          description: the users created timestamp
+          examples:
+          - 2011-09-07T08:37:37Z
+        roles:
+          type: array
+          items:
+            type: string
+    UpdateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          examples:
+          - username
+        email:
+          type: string
+          examples:
+          - email@example.com
+        password:
+          type: string
+          examples:
+          - password
+paths:
+  /activities:
+    get:
+      summary: search available activities
+      tags:
+        - activities
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/query"
+        - $ref: "#/components/parameters/category"
+        - $ref: "#/components/parameters/duration"
+        - $ref: "#/components/parameters/difficulty"
+        - $ref: "#/components/parameters/sort"
+        - $ref: "#/components/parameters/order"
+        - $ref: "#/components/parameters/completed"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchActivitiesResults"
+  /auth:
+    get:
+      summary: Gets an access token using Basic auth
+      tags:
+      - auth
+      security:
+      - basicAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - access_token
+                properties:
+                  access_token:
+                    type: string
+                    description: access token that can be used for Bearer authentication
+        "401":
+          description: Not Authorized
+    post:
+      summary: Gets an access token using the supplied user credentials
+      tags:
+      - auth
+      requestBody:
+        description: Provide the user credentials to use for authentication
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: "#/components/schemas/LoginWithId"
+              - $ref: "#/components/schemas/LoginWithUsername"
+              - $ref: "#/components/schemas/LoginWithEmail"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - access_token
+                properties:
+                  access_token:
+                    type: string
+                    description: access token that can be used for Bearer authentication
+        "401":
+          description: Not Authorized
+  /user:
+    get:
+      summary: get the current users information
+      tags:
+      - user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Information about a single user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUserResponse"
+        "401":
+          description: no current user is authenticated
+    post:
+      summary: creates a new user
+      tags:
+      - user
+      requestBody:
+        description: information of the user to be created
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateUserResponse"
+        "400":
+          description: missing or malformed data
+        "401":
+          description: a user is already logged in
+        "409":
+          description: a user with the provided username or email already exists
+    patch:
+      summary: updates the current user
+      tags:
+      - user
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "204":
+          description: user updated
+        "400":
+          description: missing or malformed data
+        "401":
+          description: no user is logged in
+        "409":
+          description: a user with the provided username or email already exists
+    delete:
+      summary: delete the current user
+      tags:
+      - user
+      security:
+      - bearerAuth: []
+      responses:
+        "204":
+          description: user deleted
+        "401":
+          description: no user is logged in

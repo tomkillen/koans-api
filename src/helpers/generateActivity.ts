@@ -15,11 +15,11 @@ const categories = [
   'Social Connection',
 ];
 
-const generateWords = (min: number = 1, max: number = 3): string => {
+const generateWords = (min = 1, max = 3): string => {
   return textGenerator.generateWords(Math.floor(min + (max - min) * Math.random()));
 }
 
-const generateParagraphs = (min: number = 1, max: number = 3): string => {
+const generateParagraphs = (min = 1, max = 3): string => {
   return textGenerator.generateParagraphs(Math.floor(min + (max - min) * Math.random()));
 }
 
