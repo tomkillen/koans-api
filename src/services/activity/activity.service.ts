@@ -1,11 +1,45 @@
-import { Mongoose } from "mongoose";
-import Activity, { ActivityInfo } from "./activity.model";
+import { Expression, FilterQuery, Mongoose, PipelineStage, SortOrder } from "mongoose";
+import Activity, { ActivityInfo, IActivity } from "./activity.model";
 import objectIdToString from "../../helpers/objectIdToString";
 import stringToObjectId from "../../helpers/stringToObjectId";
+import { NumberOrRange, numberOrRangeToNumberFilter, sortOrder, textSearchFromSearchString } from "../../helpers/mongoQuery";
 
-type CreateActivityDTO = ActivityInfo;
-type UpdateActivityDTO = Partial<ActivityInfo>;
-type GetActivityDTO = { id: string, created: Date } & ActivityInfo;
+export type ActivitiesSortByKey = 'created' | 'title' | 'category' | 'duration' | 'difficulty';
+export type ActivitiesSortBy = {
+  key: ActivitiesSortByKey;
+  direction: SortOrder;
+}
+
+export type CreateActivityRequestDTO = ActivityInfo;
+export type UpdateActivityRequestDTO = Partial<ActivityInfo>;
+export type GetActivityResponseDTO = { id: string, created: Date } & ActivityInfo;
+export type GetActivitiesResponseDTO = {
+  /** List of activities found by the GetActivitiesRequestDTO */
+  activities: GetActivityResponseDTO[],
+  /** Pagination */
+  page: number;
+  pageSize: number;
+  /** Total number of results available */
+  total: number;
+};
+export type GetActivitiesRequestDTO = {
+  /**
+   * Search title, category, description, and content by keyword(s)
+   * Group terms by quotes, e.g. `"fitness first" for men`
+   */
+  searchTerm?: string;
+  /** Filter by category(s) */
+  category?: string | string[];
+  /** Filter by difficulty or difficulty range */
+  difficulty?: NumberOrRange;
+  /** Filter by duration or duration range */
+  duration?: NumberOrRange;
+  /** Pagination */
+  page?: number;
+  pageSize?: number;
+  /** Sorting, nested from first as highest sort order (0) to Nth */
+  sortBy?: ActivitiesSortBy | ActivitiesSortBy[];
+};
 
 const ActivityServiceErrors = {
   ActivityNotFound: 'Activity not found',
@@ -25,55 +59,156 @@ class ActivityService {
     await Activity.init();
   }
 
-  async createActivity(activityInfo: CreateActivityDTO): Promise<string> {
-    return objectIdToString((await (await Activity.create(activityInfo)).save())._id);
+  async createActivity(activityInfo: CreateActivityRequestDTO): Promise<string> {
+    return objectIdToString((await (await Activity.create({
+      title: activityInfo.title,
+      category: activityInfo.category,
+      description: activityInfo.description,
+      duration: activityInfo.duration,
+      difficulty: activityInfo.difficulty,
+      content: activityInfo.content,
+    })).save())._id);
   }
 
-  async getActivity(id: string): Promise<GetActivityDTO> {
+  async getActivity(id: string): Promise<GetActivityResponseDTO> {
     const activity = await Activity.findById(stringToObjectId(id));
     if (!activity) {
       throw new Error(ActivityServiceErrors.ActivityNotFound);
     } else {
-      return {
-        id: objectIdToString(activity._id),
-        created: activity._id.getTimestamp(),
-        title: activity.title,
-        category: activity.category,
-        description: activity.description,
-        duration: activity.duration,
-        difficulty: activity.duration,
-        content: activity.content,
-      };
+      return this.activityToGetActivityResponseDTO(activity);
     }
   }
 
-  async updateActivity(id: string, activityInfo: UpdateActivityDTO): Promise<void> {
-    const result = await Activity.findByIdAndUpdate(stringToObjectId(id), activityInfo);
-    if (!result) {
+  async getActivities(query?: GetActivitiesRequestDTO): Promise<GetActivitiesResponseDTO> {
+    const pipeline: PipelineStage[] = [];
+
+    // Filtering & searching
+    const filters: FilterQuery<IActivity>[] = [];
+    
+    if (query?.difficulty !== undefined) {
+      filters.push({ difficulty: numberOrRangeToNumberFilter(query.difficulty) })
+    }
+    if (query?.duration !== undefined) {
+      filters.push({ duration: numberOrRangeToNumberFilter(query.duration) });
+    }
+    if (query?.category) {
+      if (Array.isArray(query.category)) {
+        filters.push({ category: { $in: query.category }});
+      } else {
+        filters.push({ category: { $eq: query.category }});
+      }
+    }
+    if (query?.searchTerm?.trim()) {
+      filters.push({ $text: textSearchFromSearchString(query.searchTerm.trim()) });
+    }
+
+    if (filters.length === 1) {
+      pipeline.push({ $match: filters[0] });
+    } else if (filters.length > 1) {
+      pipeline.push({ $match: { $and: filters } });
+    }
+
+    // Sorting
+    const sort: { [ key: string ]: 1 | -1 | Expression.Meta } = {};
+    if (query?.sortBy) {
+      if (Array.isArray(query.sortBy)) {
+        query.sortBy.forEach(sortBy => {
+          sort[sortBy.key] = sortOrder(sortBy.direction);
+        });
+      } else {
+        sort[query.sortBy.key] = sortOrder(query.sortBy.direction);
+      }
+      // If we have some keywords, add an additional next sort by text score
+      if (query.searchTerm) {
+        sort.score = { $meta: "textScore" };
+      }
+    } else {
+      // If we have some keywords to search by, default to sorting by text score
+      // otherwise default to sorting by title ascending
+      if (query?.searchTerm) {
+        sort.score = { $meta: "textScore" };
+      } else {
+        sort.title = 1;
+      }
+    }
+    pipeline.push({ $sort: sort });
+
+    // Pagination
+
+    // Default to page 1 and pageSize of 20
+    // Don't allow negative page or pageSize
+    const page = Math.max(query?.page ?? 1, 1);
+    const pageSize = Math.max(query?.pageSize ?? 20, 1);
+
+    pipeline.push({ 
+      $facet: {
+        metadata: [{ $count: 'total' }],
+        data: [ 
+          { $skip: (page - 1) * pageSize },
+          { $limit: pageSize }
+        ]
+      }
+    });
+
+    // Execution
+    const result = await Activity.aggregate<{ metadata: [{ total: number }], data: IActivity[] }>(pipeline);
+    return {
+      page,
+      pageSize,
+      total: result[0]?.metadata[0]?.total ?? 0,
+      activities: result[0]?.data.map(this.activityToGetActivityResponseDTO) ?? [],
+    };
+  }
+
+  async updateActivity(id: string, activityInfo: UpdateActivityRequestDTO): Promise<void> {
+    const result = await Activity.updateOne(stringToObjectId(id), {
+      title: activityInfo.title,
+      category: activityInfo.category,
+      description: activityInfo.description,
+      duration: activityInfo.duration,
+      difficulty: activityInfo.difficulty,
+      content: activityInfo.content,
+    });
+    if (result.modifiedCount === 0) {
       throw new Error(ActivityServiceErrors.ActivityNotFound);
     }
   }
 
   async deleteActivity(id: string): Promise<void> {
-    const result = await Activity.findByIdAndDelete(stringToObjectId(id));
-    if (!result) {
+    const result = await Activity.deleteOne(stringToObjectId(id));
+    if (result.deletedCount === 0) {
       throw new Error(ActivityServiceErrors.ActivityNotFound);
     }
   }
 
-  async deleteCategory(category: string): Promise<void> {
+  async deleteCategory(category: string): Promise<number> {
     const result = await Activity.deleteMany({ category });
     if (result.deletedCount === 0) {
       throw new Error(ActivityServiceErrors.CategoryNotFound);
     }
+    return result.deletedCount;
   }
 
-  async renameCategory(oldCategory: string, newCategory: string): Promise<void> {
+  async renameCategory(oldCategory: string, newCategory: string): Promise<number> {
     const result = await Activity.updateMany({ category: oldCategory }, { category: newCategory });
     if (result.modifiedCount === 0) {
       throw new Error(ActivityServiceErrors.CategoryNotFound);
     }
+    return result.modifiedCount;
   }
+
+  private activityToGetActivityResponseDTO(activity: IActivity) {
+    return {
+      id: objectIdToString(activity._id),
+      created: activity._id.getTimestamp(),
+      title: activity.title,
+      category: activity.category,
+      description: activity.description,
+      duration: activity.duration,
+      difficulty: activity.difficulty,
+      content: activity.content,
+    };
+  };
 }
 
 export default ActivityService;

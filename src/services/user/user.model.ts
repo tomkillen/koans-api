@@ -53,7 +53,7 @@ const UserSchema: Schema<IUser> = new Schema({
       // is being built
       unique: true,
       // Case insenstive index
-      collation: { locale: 'en', strength: 2 },
+      collation: { locale: 'en', strength: 1 },
     },
     validate: {
       validator: (value: unknown) => {
@@ -76,7 +76,7 @@ const UserSchema: Schema<IUser> = new Schema({
       // is being built
       unique: true,
       // Case insenstive index
-      collation: { locale: 'en', strength: 2 },
+      collation: { locale: 'en', strength: 1 },
     },
     validate: {
       validator: (value: unknown) => {
