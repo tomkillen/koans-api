@@ -1,11 +1,11 @@
-import { expect } from "@jest/globals";
-
 declare module 'expect' {
   interface AsymmetricMatchers {
-    toBeObjectId(): void;
+    toBeObjectIdHexString(): void;
+    toBeJwt(): void;
   }
-  interface Matchers<R> {
-    toBeObjectId(): R;
+  interface Matchers<R extends void | Promise<void>, T = unknown> {
+    toBeObjectIdHexString(): R;
+    toBeJwt(): R;
   }
 }
 

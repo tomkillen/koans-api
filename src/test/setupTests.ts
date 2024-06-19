@@ -1,6 +1,8 @@
 import { expect } from '@jest/globals';
-import toBeObjectId from './matchers/toBeObjectId';
+import toBeObjectIdHexString from './matchers/toBeObjectIdHexString';
+import toBeJwt from './matchers/toBeJwt';
 
 expect.extend({
-  toBeObjectId,
+  toBeObjectIdHexString,
+  toBeJwt,
 });
