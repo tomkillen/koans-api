@@ -1,14 +1,17 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
-import mongoose, { Mongoose, isValidObjectId } from "mongoose";
+import { afterAll, beforeAll, describe, expect, jest, test } from "@jest/globals";
+import mongoose, { Mongoose } from "mongoose";
 import UserService from "../user/user.service";
 import AuthService from "./auth.service";
-import { basicAuth } from "./auth.middleware";
+import { basicAuth, bearerAuth } from "./auth.middleware";
 import supertest from "supertest";
 import express from "express";
 import Role from "./auth.roles";
+import mockRequest from "../../test/mocks/mockRequest";
+import mockResponse from "../../test/mocks/mockResponse";
+import { JwtPayload, decode } from "jsonwebtoken";
 
 describe('auth.middleware', () => {
   let mongooseClient: Mongoose = null!;  
@@ -47,7 +50,7 @@ describe('auth.middleware', () => {
 
   // Regular auth
   describe('regular user auth', () => {
-    test('can authorize using basic auth', async () => {
+    test('e2e can authorize using basic auth', async () => {
       const app = express();
       app.userService = userService!;
       app.authService = authService!;
@@ -64,7 +67,7 @@ describe('auth.middleware', () => {
         .set('Authorization', `Basic ${Buffer.from('user1:user1password').toString('base64')}`);
     });
   
-    test('empty auth fails', async () => {
+    test('e2e mpty auth fails', async () => {
       const app = express();
       app.userService = userService!;
       app.authService = authService!;
@@ -81,7 +84,7 @@ describe('auth.middleware', () => {
         .set('Authorization', `Basic `);
     });
   
-    test('incorrect password fails', async () => {
+    test('e2e incorrect password fails', async () => {
       const app = express();
       app.userService = userService!;
       app.authService = authService!;
@@ -120,16 +123,114 @@ describe('auth.middleware', () => {
 
     test('can create non-admin user', async () => {
       regularUser.id = await userService.createUser(regularUser);
-      expect(regularUser.id).toBeObjectId();
+      expect(regularUser.id).toBeObjectIdHexString();
     });
 
     test('can create admin user', async () => {
       adminUser.id = await userService.createUser(adminUser);
-      expect(adminUser.id).toBeObjectId();
+      expect(adminUser.id).toBeObjectIdHexString();
     });
 
-    test('regular user cannot login as admin', async () => {
+    test('regular user can login as non-admin (basic auth)', async () => {
+      const req = mockRequest({
+        headers: {
+          'authorization': `Basic ${Buffer.from(`${regularUser.username}:${regularUser.password}`).toString('base64')}`
+        },
+        app: {
+          authService,
+        },
+      });
+      const res = mockResponse({
+      });
+      const next = jest.fn();
+      await basicAuth(req, res, next);
+      expect(res.locals.accessToken).toBeJwt();
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(decode(res.locals.accessToken!)).not.toHaveProperty('roles');
+      regularUser.accessToken = res.locals.accessToken as string;
+    });
 
+    test('admin user can login (basic auth)', async () => {
+      const req = mockRequest({
+        headers: {
+          'authorization': `Basic ${Buffer.from(`${adminUser.username}:${adminUser.password}`).toString('base64')}`
+        },
+        app: {
+          authService,
+        },
+      });
+      const res = mockResponse({
+      });
+      const next = jest.fn();
+      await basicAuth(req, res, next);
+      expect(res.locals.accessToken).toBeJwt();
+      expect(decode(res.locals.accessToken!)).toHaveProperty('roles');
+      expect((decode(res.locals.accessToken!) as JwtPayload).roles).toStrictEqual([ 'admin' ]);
+      expect(next).toHaveBeenCalledTimes(1);
+      adminUser.accessToken = res.locals.accessToken as string;
+    });
+
+    test('regular user can authorize as non-admin (bearer auth)', async () => {
+      expect(regularUser.accessToken).toBeJwt();
+      const req = mockRequest({
+        headers: {
+          'authorization': `Bearer ${regularUser.accessToken}`
+        },
+        app: {
+          authService,
+          userService,
+        },
+      });
+      const res = mockResponse({
+      });
+      const next = jest.fn();
+      await bearerAuth(req, res, next);
+      expect(res.locals.user).toBeDefined();
+      expect(res.locals.user).toHaveProperty('id');
+      expect(res.locals.user).toHaveProperty('username');
+      expect(res.locals.user).toHaveProperty('email');
+      expect(res.locals.user).not.toHaveProperty('password');
+      expect(res.locals.user?.roles).not.toBeDefined();
+      expect(res.locals.user?.username).toBe(regularUser.username);
+      expect(res.locals.user?.email).toBe(regularUser.email);
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.send).not.toHaveBeenCalled();
+      expect(res.end).not.toHaveBeenCalled();
+      regularUser.id = res.locals.user?.id!;
+      console.log('regular user', regularUser.accessToken);
+    });
+
+    test('admin user cannot authorize as admin (bearer auth)', async () => {
+      expect(adminUser.accessToken).toBeJwt();
+      const req = mockRequest({
+        headers: {
+          'authorization': `Bearer ${adminUser.accessToken}`
+        },
+        app: {
+          authService,
+          userService,
+        },
+      });
+      const res = mockResponse({
+      });
+      const next = jest.fn();
+      await bearerAuth(req, res, next);
+      expect(res.locals.user).toBeDefined();
+      expect(res.locals.user).toHaveProperty('id');
+      expect(res.locals.user).toHaveProperty('username');
+      expect(res.locals.user).toHaveProperty('email');
+      expect(res.locals.user).not.toHaveProperty('password');
+      expect(res.locals.user).toHaveProperty('roles');
+      expect(res.locals.user?.roles).toStrictEqual([ 'admin' ]);
+      expect(res.locals.user?.username).toBe(adminUser.username);
+      expect(res.locals.user?.email).toBe(adminUser.email);
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.send).not.toHaveBeenCalled();
+      expect(res.end).not.toHaveBeenCalled();
+      console.log('admin user', adminUser.accessToken);
+      adminUser.id = res.locals.user?.id!;
     });
   });
 });

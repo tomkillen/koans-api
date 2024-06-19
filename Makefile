@@ -102,12 +102,47 @@ lint:
 check-dependencies:
 	npx depcheck
 
+# Run the local test suite (here using jest)
+# Note that even though I also have `make e2e`, that isn't supposed to imply that the local test suite
+# doesn't contain e2e tests. We absolutely can run e2e tests during `make test` but the point is to have
+# two test suites, a local test suite (`make test`) and a non-local test suite (`make e2e`)
+# Maybe I can find a better naming convention, but that is the different between `make test` and `make e2e`
 .PHONY: test
 test:
 	npm test
 
+# Run tests in watch mode
+.PHONY: test-watch
+test-watch:
+	npm run test -- --watch
+
+# Commentary:
+# Typically I'd like to have a totally distinct suite of tests that run in a docker container
+# usually made using either puppeteer or playwright
+# The e2e tests are made without looking at the codebase, ideally a completely separate project / repo
+# and they are created looking only at the user interface & openapi specs.
+# That testing suite would typically include load testing, fuzz testing, happy-path testing,
+# regression testing, acceptance testing, and attempts to outsmart the programmers.
+# If you want to be serious about testing, you make it a game. 
+# e.g. if someone finds a bug in someone elses code by writing an e2e test, don't do git blame because
+# no one like that but maybe the victim has to buy the bounty hunter a beer, or you maintain a leaderboard
+# with gold stars or something fun like that.
+# A good idea is for programmers from other projects to write the e2e tests for this project, that way
+# different teams learn in-detail how other projects work & it can promote a healthy rivalry that builds
+# towards more stable & tested code.
+# Generally I find it is difficult for a programmer to properly test their own code since each programmer
+# has a certain concept of how the flow of their program works, and their tests will usually reflect that
+# same mental model. But good tests mean applying a different mental model to the code.
+
+# Run e2e test suite which would be a something like docker container that can target a provided
+# url, built from a different project/repo (see commentary above).
+# The local test suite might still contain e2e tests, but the point is to have two tiers of tests
+# 1 - a local test suite (e.g. here I am using jest)
+# 2 - a non-local test suite
+# the `make e2e` command is intended to run the non-local test suite, which is not implemented for this
+# demo.
 .PHONY: e2e
-e2e: ; # TODO
+e2e: ; # Not implemented
 
 ### Docker
 
