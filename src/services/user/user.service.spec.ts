@@ -257,12 +257,9 @@ describe('user service', () => {
       // first check using the new password fails
       expect(userService!.getUserWithCredentials(getSally!.id, 'newpassword')).rejects.toThrowError();
 
-      const updatedSally = await userService!.updateUser(getSally!.id, {
+      await userService!.updateUser(getSally!.id, {
         password: 'newpassword'
       });
-      expect(updatedSally).toBeDefined();
-      expect(updatedSally.id).toBe(getSally?.id);
-      expect(updatedSally.username).toBe('Sally');
 
       // sally maintains the same id
       const checkSallysId = await userService!.getUser(getSally!.id);

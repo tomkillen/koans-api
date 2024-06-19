@@ -46,6 +46,17 @@ const logger = {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   error: (...data: any[]) => console.error(...data),
+
+  /**
+   * FATAL log that can accept a format argument
+   * After the log is written, the server will kill itself
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  fatal: (message: string) => {
+    process.stdout.write(message, () => {
+      process.exit(-1);
+    });
+  },
 };
 
 export default logger;

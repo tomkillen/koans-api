@@ -4,7 +4,6 @@ import { Schema, checkSchema, header, matchedData, param, validationResult } fro
 import ActivityService, { UpdateActivityRequestDTO } from "../../../../services/activity/activity.service";
 import isDifficultyValidator from "../../../../validators/isDifficultyValidator";
 import { Difficulty, getDifficultyValue } from "../../../../services/activity/activity.difficulty";
-import logger from "../../../../utilities/logger";
 
 // Validation schema used for PATCH /activities/:id
 const patchActivitiesRequestSchema: Schema = {
@@ -127,7 +126,7 @@ const activity = (): Router => {
       
       // Check data validation results
       if (!checkDataValidation.isEmpty()) {
-        return res.status(400).end('Bad Request'); 
+        return res.status(400).end('Bad Request');
       }
 
       // Check user has authority to perform admin actions
@@ -166,6 +165,11 @@ const activity = (): Router => {
         if (data.difficulty)
           dto.difficulty = getDifficultyValue(data.difficulty);
 
+        if (Object.keys(dto).length === 0) {
+          // Nothing to update!
+          return res.status(400).end('Bad Request');
+        }
+
         await req.app.activityService.updateActivity(data.id, dto);
   
         res.status(204).end('Activity updated');
@@ -176,7 +180,6 @@ const activity = (): Router => {
         } else if (err instanceof Error && err.message === ActivityService.Errors.ActivityNotFound) {
           res.status(404).end(ActivityService.Errors.ActivityNotFound);
         } else {
-          logger.warning(`Error updating activity: ${err}: \n${JSON.stringify(err, null, 2)}`);
           return next(err);
         }
       }
@@ -186,8 +189,8 @@ const activity = (): Router => {
   // DELETE /activities/:id
   // Deletes the activity, requires administrator
   // Responses:
-  //  - 204: Activity updated
-  //  - 400: Malformed payload
+  //  - 204: Activity deleted
+  //  - 400: Bad Request
   //  - 401: Not Authorized / Not Admin
   //  - 404: Activity doesn't exist
   router.delete(
@@ -222,7 +225,6 @@ const activity = (): Router => {
           // Title already in use
           res.status(404).end(ActivityService.Errors.ActivityNotFound);
         } else {
-          logger.warning(`Error updating activity: ${err}: \n${JSON.stringify(err, null, 2)}`);
           return next(err);
         }
       }

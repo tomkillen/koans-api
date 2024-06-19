@@ -3,10 +3,11 @@
 
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import supertest from "supertest";
-import App from "../App";
+import App from "../../../App";
 import express from "express";
 import mongoose, { Mongoose } from "mongoose";
-import { GetActivityResponseDTO } from "../services/activity/activity.service";
+import { GetActivityResponseDTO } from "../../../services/activity/activity.service";
+import Role from "../../../services/auth/auth.roles";
 
 describe('e2e activities', () => {
   let mongooseClient: Mongoose | null = null;
@@ -19,11 +20,27 @@ describe('e2e activities', () => {
     password: 'test user 1 password',
   };
 
+  const admin = {
+    id: '',
+    accessToken: '',
+    username: 'test admin',
+    email: 'testadmin@example.com',
+    password: 'admin password',
+    roles: [ 'admin' as Role ],
+  };
+
   const activities: GetActivityResponseDTO[] = [];
 
   beforeAll(async () => {
     mongooseClient = await mongoose.connect((global as any).__MONGO_URI__ as string);
     app = await App(mongooseClient);
+    admin.id = await app.userService.createUser({ 
+      username: admin.username, 
+      email: admin.email,
+      password: admin.password,
+      roles: admin.roles,
+    });
+    admin.accessToken = await app.authService.getAuthTokenForUser(admin.id, admin.password);
   });
 
   afterAll(async () => {
@@ -31,33 +48,33 @@ describe('e2e activities', () => {
     mongooseClient = null;
   });
 
-  test('can create test user (POST /v1/user)', async () => {
+  test('POST /v1/user => 201: can create test user (POST /v1/user)', async () => {
     const res = await supertest(app).post('/v1/user').send(user);
     expect(res.statusCode).toBe(201);
     expect(res.body).toHaveProperty('id');
-    expect(res.body).toHaveProperty('access_token');
+    expect(res.body.id).toBeObjectIdHexString();
   });
 
-  test('can basic auth test user (GET /v1/auth)', async () => {
+  test('GET /v1/auth => 200: can basic auth test user (GET /v1/auth)', async () => {
     const res = await supertest(app).get('/v1/auth').send().set('Authorization', `Basic ${Buffer.from(`${user.username}:${user.password}`).toString('base64')}`);
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('access_token');
   });
 
-  test('can simple auth test user with username (POST /v1/auth)', async () => {
+  test('POST /v1/auth => 200: can simple auth test user with username (POST /v1/auth)', async () => {
     const res = await supertest(app).post('/v1/auth').send({ username: user.username, password: user.password });
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('access_token');
   });
 
-  test('can simple auth test user with email (POST /v1/auth)', async () => {
+  test('POST /v1/auth => 200: can simple auth test user with email (POST /v1/auth)', async () => {
     const res = await supertest(app).post('/v1/auth').send({ username: user.username, password: user.password });
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('access_token');
     user.accessToken = res.body.access_token;
   });
 
-  test('can list activities (GET /v1/activities)', async () => {
+  test('GET /v1/activities => 200: can list activities (GET /v1/activities)', async () => {
     const res = await supertest(app).get('/v1/activities').query({ page: 1, pageSize: 100 }).set('Authorization', `Bearer ${user.accessToken}`);
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('page');
@@ -67,10 +84,11 @@ describe('e2e activities', () => {
     expect(res.body).toHaveProperty('total');
     expect(res.body).toHaveProperty('activities');
     expect(res.body.activities).toBeInstanceOf(Array);
-    (res.body.activities as []).forEach(item => {
+    (res.body.activities as any[]).forEach(item => {
       expect(item).toBeDefined();
       expect(typeof item).toBe('object');
       expect(item).toHaveProperty('id');
+      expect(item.id).toBeObjectIdHexString();
       expect(item).toHaveProperty('created');
       expect(item).toHaveProperty('title');
       expect(item).toHaveProperty('category');
@@ -97,6 +115,7 @@ describe('e2e activities', () => {
         expect(item).toBeDefined();
         expect(typeof item).toBe('object');
         expect(item).toHaveProperty('id');
+        expect(item.id).toBeObjectIdHexString();
         expect(item).toHaveProperty('created');
         expect(item).toHaveProperty('title');
         expect(item).toHaveProperty('category');
@@ -110,11 +129,12 @@ describe('e2e activities', () => {
     }
   }, 10000);
 
-  test('can get each activity (/v1/activities/{id}', async () => {
+  test('GET /v1/activities/:id => 200: an get each activity (/v1/activities/{id}', async () => {
     await Promise.all(activities.map(async activity => {
       const res = await supertest(app).get(`/v1/activities/${activity.id}`).set('Authorization', `Bearer ${user.accessToken}`);
       expect(res.statusCode).toBe(200);
       expect(res.body).toHaveProperty('id');
+      expect(res.body.id).toBeObjectIdHexString();
       expect(res.body.id).toBe(activity.id);
       expect(res.body).toHaveProperty('created');
       expect(res.body.created).toBe(activity.created);
@@ -132,4 +152,79 @@ describe('e2e activities', () => {
       expect(res.body.content).toBe(activity.content);
     }));
   }, 10000);
+
+  test('GET /v1/activities => 400: bad query', async () => {
+    const res = await supertest(app).get(`/v1/activities`).query({
+      difficulty: 'cheese',
+    }).set('Authorization', `Bearer ${user.accessToken}`);
+    expect(res.statusCode).toBe(400);
+  });
+  test('GET /v1/activities => 401: missing auth', async () => {
+    const res = await supertest(app).get(`/v1/activities`);
+    expect(res.statusCode).toBe(401);
+  });
+  test('POST /v1/activities => 201: admin can create activity', async () => {
+    const res = await supertest(app).post(`/v1/activities`).send({
+      title: 'some test activity',
+      category: 'some test category',
+      description: 'some test description',
+      content: 'some test content',
+      difficulty: 'easy',
+      duration: 60,
+    }).set('Authorization', `Bearer ${admin.accessToken}`);
+    expect(res.statusCode).toBe(201);
+    expect(res.body).toHaveProperty('id');
+    expect(res.body.id).toBeObjectIdHexString();
+  });
+  test('POST /v1/activities => 400: missing activity data', async () => {
+    const res = await supertest(app).post(`/v1/activities`).send({
+      title: 'some test activity 123',
+      category: 'some test category 123',
+    }).set('Authorization', `Bearer ${admin.accessToken}`);
+    expect(res.statusCode).toBe(400);
+  });
+  test('POST /v1/activities => 400: invalid activity data', async () => {
+    const res = await supertest(app).post(`/v1/activities`).send({
+      title: 'some test activity 4',
+      category: 'some test category',
+      description: 'some test description',
+      content: 'some test content',
+      difficulty: 'cheese',
+      duration: 60,
+    }).set('Authorization', `Bearer ${admin.accessToken}`);
+    expect(res.statusCode).toBe(400);
+  });
+  test('POST /v1/activities => 401: missing auth', async () => {
+    const res = await supertest(app).post(`/v1/activities`).send({
+      title: 'some test activity 5',
+      category: 'some test category',
+      description: 'some test description',
+      content: 'some test content',
+      difficulty: 'cheese',
+      duration: 60,
+    });
+    expect(res.statusCode).toBe(401);
+  });
+  test('POST /v1/activities => 401: not an admin', async () => {
+    const res = await supertest(app).post(`/v1/activities`).send({
+      title: 'some test activity 7',
+      category: 'some test category',
+      description: 'some test description',
+      content: 'some test content',
+      difficulty: 'cheese',
+      duration: 60,
+    }).set('Authorization', `Bearer ${user.accessToken}`);
+    expect(res.statusCode).toBe(401);
+  });
+  test('POST /v1/activities => 409: duplicate title', async () => {
+    const res = await supertest(app).post(`/v1/activities`).send({
+      title: 'some test activity',
+      category: 'some test category',
+      description: 'some test description',
+      content: 'some test content',
+      difficulty: 'easy',
+      duration: 60,
+    }).set('Authorization', `Bearer ${admin.accessToken}`);
+    expect(res.statusCode).toBe(409);
+  });
 });

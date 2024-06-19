@@ -1,8 +1,33 @@
-import { Router, json } from "express";
-import { body, header, matchedData, validationResult } from "express-validator";
+import { NextFunction, Request, Response, Router, json } from "express";
+import { Schema, body, checkSchema, header, matchedData, validationResult } from "express-validator";
 import { bearerAuth } from "../../../services/auth/auth.middleware";
-import logger from "../../../utilities/logger";
 import UserService, { CreateUserRequestDTO, UpdateUserRequestDTO } from "../../../services/user/user.service";
+
+const postUserSchema: Schema = {
+  username: {
+    in: 'body',
+    exists: true,
+    isString: true,
+    isLength: { options: { min: 1 } },
+  },
+  email: {
+    in: 'body',
+    exists: true,
+    isEmail: true,
+    isLength: { options: { min: 1 } },
+  },
+  password: {
+    in: 'body',
+    exists: true,
+    isString: true,
+    // We also have available these validator:
+    // isStrongPassword: true,
+    // But since password requirements have not been defined, I am allowing weak passwords
+    // We could also write our own password validator
+    // custom: { options: customPasswordValidatorFunction }
+    isLength: { options: { min: 1 } },
+  }
+};
 
 /**
  * Creates router for /user
@@ -11,13 +36,16 @@ const user = (): Router => {
   const path = '/user';
   const router = Router();
 
-  // GET /user
+  // GET /v1/user
   // Get the current active users information
+  // Responses:
+  //  - 200 { id, username, email, created, roles? }
+  //  - 401 Not Authorized
   router.get(
     path,
     header('authorization'),
     bearerAuth,
-    (_, res) => {
+    (_: Request, res: Response) => {
       if (res.locals.user) {
         res.status(200).json({
           id: res.locals.user.id,
@@ -27,57 +55,47 @@ const user = (): Router => {
           roles: res.locals.user.roles,
         }).end();
       } else {
-        res.status(401).end('Not Authorized');
+        return res.status(401).end('Not Authorized');
       }
     },
   );
 
-  // POST /user
+  // POST /v1/user
   // Register a new user
   // expects: body: { username: string, email: string (valid email), password: string }
+  // Responses
+  //  - 201 Created
+  //  - 400 Bad Request
+  //  - 401 Not Authorized (already logged in)
+  //  - 409 Conflict (username or email conflict)
   router.post(
     path,
     json(),
     // Check that no current authorization exists, no current user
-    header('authorization')
-      .not()
-      .exists(),
-    // If a user is currently logged in, reject the request
-    (req, res, next) => {
-      const validationErrors = validationResult(req);
-      if (!validationErrors.isEmpty()) {
-        res.status(401).end('You are already logged in');
-      } else {
-        next();
-      }
-    },
-    // Validate parameters
-    body('username').isString().notEmpty(),
-    body('email').isString().notEmpty().isEmail(),
-    body('password').isString().notEmpty(),
-    (req, res, next) => {
-      const validationErrors = validationResult(req);
-      if (!validationErrors.isEmpty()) {
-        res.status(400).end('Malformed Request');
-      } else {
-        next();
-      }
-    },
+    header('authorization').not().exists(),
+    // Validate request schema
+    checkSchema(postUserSchema),
     // Attempt to create the user
-    async (req, res, next) => {
+    async (req: Request, res: Response, next: NextFunction) => {
+      
+      // Reject as unauthorized if the user is already logged in
+      if (res.locals.user || res.locals.accessToken || req.headers.authorization) {
+        return res.status(401).end('Already logged in');
+      }
+
+      // Check for schema validation issues
+      const validationErrors = validationResult(req);
+      if (!validationErrors.isEmpty()) {
+        return res.status(400).end('Malformed Request');
+      }
+
       const userData = matchedData<{ 
         username: string;
         email: string;
         password: string;
       }>(req);
+
       try {
-        // Ensure user does not already exist with this username and email
-        if (await req.app.userService.getUser({ username: userData.username }) !== null) {
-          return res.status(409).end('User already exists');
-        }
-        if (await req.app.userService.getUser({ email: userData.email }) !== null) {
-          return res.status(409).end('User already exists');
-        }
 
         // Be explicit about which fields we copy to the DTO
         // to help prevent unwanted data being injected
@@ -88,19 +106,46 @@ const user = (): Router => {
         };
 
         // Create the user
-        const id = await req.app.userService.createUser(dto);
+        try {
+          
+          const id = await req.app.userService.createUser(dto);
+          return res.status(201).json({ id }).end();
 
-        // Authorize the user that was just created (login upon create)
-        const access_token = await req.app.authService.getAuthTokenForUser(id, userData.password);
+        } catch (err) {
 
-        return res.status(201).json({ id, access_token }).end();
+          // Handle anticipated errors
+          if (err instanceof Error && (
+              err.message === UserService.Errors.Username.Conflict || 
+              err.message === UserService.Errors.Email.Conflict)) {
+            if (err.message === UserService.Errors.Username.Conflict) {
+              // Hmm we are leaking information about existing users
+              // which would aid a brute force attacker
+              // But they would be able to work this out due to otherwise correct
+              // responses being refused anyway, even if we pretended it was a 
+              // server error the pattern would still be clear.
+              // So in this situation, better to enable giving the user some useful
+              // UI feedback
+              return res.status(409).end('Username in use');
+            } else {
+              return res.status(409).end('Email in use');
+            }
+          } else {
+            // Unhandled error
+            next(err);
+          }
+        }
       } catch (err) {
         next(err);
       }
     },
   );
 
-  // PATCH /user
+  // PATCH /v1/user
+  // Responses:
+  // - 204 - Created
+  // - 400 - Bad Request
+  // - 401 - Not Authorized
+  // - 409 - Conflict
   // Updates the current users details
   // expects: body: { username?: string, email?: string, password?: string }
   router.patch(
@@ -117,6 +162,11 @@ const user = (): Router => {
       // No user is logged in
       if (!res.locals.user) {
         return res.status(401).end('Not Authorized');
+      }
+
+      const result = validationResult(req);
+      if (!result.isEmpty()) {
+        return res.status(400).end('Bad Request'); 
       }
 
       const data = matchedData<{ 
@@ -147,20 +197,22 @@ const user = (): Router => {
           )) {
             return res.status(409).end('Conflict');
           } else {
-            logger.error(`Error patching user ${err}`);
             return next(err);
           }
         }
+      } else {
+        // Nothing to update
+        return res.status(400).end('Bad Request'); 
       }
     },
   );
 
-  // DELETE /user
+  // DELETE /v1/user
   // Deletes the current user
   // Responses
   //  - 204: Deleted
   //  - 401: Not Authorized (not logged in)
-  //  - 404: User not found
+  //  - 404: User not found (usually would result in 401 but here in case of an extremely rare race condition)
   router.delete(
     path,
     header('authorization'),
@@ -179,7 +231,6 @@ const user = (): Router => {
           return res.status(404).end('User not found');
         } else {
           // Unhandled error
-          logger.error(`Failed to delete user ${res.locals.user.id}`);
           next(err);
         }
       }

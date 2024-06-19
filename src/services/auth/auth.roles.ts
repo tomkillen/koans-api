@@ -7,4 +7,8 @@ type Role = |
   'user' |
   'admin';
 
+export const isValidRole = (value: unknown): value is Role => {
+  return value === 'user' || value === 'admin';
+}
+
 export default Role;

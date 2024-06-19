@@ -176,21 +176,35 @@ class ActivityService {
   }
 
   async updateActivity(id: string, activityInfo: UpdateActivityRequestDTO): Promise<void> {
-    const result = await Activity.updateOne(stringToObjectId(id), {
-      title: activityInfo.title,
-      category: activityInfo.category,
-      description: activityInfo.description,
-      duration: activityInfo.duration,
-      difficulty: activityInfo.difficulty,
-      content: activityInfo.content,
-    });
-    if (result.modifiedCount === 0) {
-      throw new Error(ActivityService.Errors.ActivityNotFound);
+    try {
+      const result = await Activity.updateOne({ _id: stringToObjectId(id) }, {
+        title: activityInfo.title,
+        category: activityInfo.category,
+        description: activityInfo.description,
+        duration: activityInfo.duration,
+        difficulty: activityInfo.difficulty,
+        content: activityInfo.content,
+      });
+      if (result.modifiedCount === 0) {
+        throw new Error(ActivityService.Errors.ActivityNotFound);
+      }
+    } catch (err) {
+      if (err instanceof mongoose.mongo.MongoServerError &&
+        err.code == '11000' &&
+        err['keyPattern'] &&
+        'title' in err['keyPattern']
+      ) {
+        // This was a title collision, so throw our own error
+        throw new Error(ActivityService.Errors.TitleConflict)
+      } else {
+        // Unhandled error, rethrow
+        throw err;
+      }
     }
   }
 
   async deleteActivity(id: string): Promise<void> {
-    const result = await Activity.deleteOne(stringToObjectId(id));
+    const result = await Activity.deleteOne({ _id: stringToObjectId(id) });
     if (result.deletedCount === 0) {
       throw new Error(ActivityService.Errors.ActivityNotFound);
     }

@@ -32,7 +32,6 @@ const createUsers = async (userService: UserService) => {
     if (!existing) {
       try {
         await userService.createUser(user);
-        // logger.info(`DEBUG INFO: Created test user username: ${user.username} password: ${user.password}`);
       } catch (err) {
         logger.warning(`DEBUG WARNING: Failed to create test user: ${user.username} with error ${err}`);
       }

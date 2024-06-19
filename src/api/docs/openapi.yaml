@@ -393,15 +393,10 @@ components:
       type: object
       required:
       - id
-      - access_token
       properties:
         id:
           type: string
           description: users id
-        access_token:
-          type: string
-          description: user access token suitable for Bearer auth (user is logged in upon
-            create)
     GetUserResponse:
       type: object
       required:

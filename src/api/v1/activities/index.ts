@@ -3,8 +3,7 @@ import { adminBearerAuth, bearerAuth } from "../../../services/auth/auth.middlew
 import { Schema, checkSchema, header, matchedData, validationResult } from "express-validator";
 import ActivityService, { ActivitiesSortByKey, CreateActivityRequestDTO } from "../../../services/activity/activity.service";
 import { SortOrder } from "mongoose";
-import activity from "./{id}";
-import logger from "../../../utilities/logger";
+import activity from "./[id]";
 import { Difficulty, getDifficultyValue } from "../../../services/activity/activity.difficulty";
 import isDifficultyValidator from "../../../validators/isDifficultyValidator";
 
@@ -136,7 +135,7 @@ const activities = (): Router => {
   // add /activities/{id}
   router.use(activity());
 
-  // GET /activities
+  // GET /v1/activities
   // Supports filtering and searching available activities
   // Requires user to be signed in
   // Responses:
@@ -181,7 +180,7 @@ const activities = (): Router => {
     },
   );
 
-  // POST /activities
+  // POST /v1/activities
   // Creates a new activity
   // Requires user to be signed in as admin
   // Responses:
@@ -240,7 +239,6 @@ const activities = (): Router => {
         if (err instanceof Error && err.message === ActivityService.Errors.TitleConflict) {
           res.status(409).end(ActivityService.Errors.TitleConflict);
         } else {
-          logger.warning(`Error creating activity: ${err}: \n${JSON.stringify(err, null, 2)}`);
           return next(err);
         }
       }

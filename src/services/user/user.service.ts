@@ -1,8 +1,9 @@
-import { Mongoose } from "mongoose";
+import mongoose, { Mongoose, isObjectIdOrHexString } from "mongoose";
 import User, { IUser, UserValidationErrors } from "./user.model";
 import objectIdToString from "../../helpers/objectIdToString";
 import stringToObjectId from "../../helpers/stringToObjectId";
-import Role from "../auth/auth.roles";
+import Role, { isValidRole } from "../auth/auth.roles";
+import logger from "../../utilities/logger";
 
 // Request DTO for creating a new user
 export type CreateUserRequestDTO = {
@@ -12,6 +13,31 @@ export type CreateUserRequestDTO = {
   roles?: Role[];
 };
 
+/**
+ * Typegaurd for CreateUserRequestDTO
+ */
+const isCreateUserRequestDTO = (value: unknown): value is CreateUserRequestDTO => {
+  if (
+    typeof value === 'object' && value !== null &&
+    'username' in value && typeof value.username === 'string' && value.username.length >= 1 &&
+    'email' in value && typeof value.email === 'string' && value.email.length >= 1 &&
+    'email' in value && typeof value.email === 'string' && value.email.length >= 1
+  ) {
+    if ('roles' in value) {
+      if (!Array.isArray(value.roles)) {
+        return false;
+      }
+      if (value.roles.some(role => !isValidRole(role))) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
 // Request DTO for updating a users information
 export type UpdateUserRequestDTO = {
   username?: string;
@@ -19,6 +45,33 @@ export type UpdateUserRequestDTO = {
   password?: string;
   roles?: Role[];
 };
+
+/**
+ * Typegaurd for UpdateUserRequestDTO
+ */
+const isUpdateUserRequestDTO = (value: unknown): value is UpdateUserRequestDTO => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  if ('username' in value && (typeof value.username !== 'string' || value.username.length === 0)) {
+    return false;
+  }
+
+  if ('email' in value && (typeof value.email !== 'string' || value.email.length === 0)) {
+    return false;
+  }
+
+  if ('password' in value && (typeof value.password !== 'string' || value.password.length === 0)) {
+    return false;
+  }
+
+  if ('roles' in value && (!Array.isArray(value.roles) || value.roles.some(role => !isValidRole(role)))) {
+    return false;
+  }
+
+  return true;
+}
 
 // Request DTO for identifying a user
 // id, username, and email are all unique and so any could be used to identify a user
@@ -30,6 +83,23 @@ export type IdentifyUserDTO = {
   /** identify user by email */
   email: string;
 } | string;
+
+/**
+ * Typegaurd for IdentifyUserDTO
+ */
+const isIdentifyUserDTO = (value: unknown): value is IdentifyUserDTO => {
+  if (typeof value === 'string' && isObjectIdOrHexString(value)) {
+    return true;
+  } else if (typeof value === 'object' && value !== null) {
+    if ('username' in value && typeof value.username === 'string' && value.username.length >= 1) {
+      return true;
+    } else if ('email' in value && typeof value.email === 'string' && value.email.length >= 1) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 // Response DTO for getting a users information
 export type GetUserResponseDTO = {
@@ -58,6 +128,7 @@ const userToGetUserResponseDTO = (user: IUser): GetUserResponseDTO => {
 class UserService {
   public static readonly Errors = {
     UserNotFound: 'user not found',
+    MalformedRequest: 'malformed request',
   
     // Embed User Model errors to be friendly to consumers of this service
     Username: {
@@ -95,12 +166,106 @@ class UserService {
    * @throws if the user could not be created
    */
   async createUser (userData: CreateUserRequestDTO): Promise<string> {
-    return objectIdToString((await (await User.create({
-      username: userData.username,
-      email: userData.email,
-      password: userData.password,
-      roles: userData.roles,
-    })).save())._id);
+    if (!isCreateUserRequestDTO(userData)) {
+      throw new Error(UserService.Errors.MalformedRequest);
+    }
+
+    try {
+      
+      return objectIdToString((await (await User.create({
+        username: userData.username,
+        email: userData.email,
+        password: userData.password,
+        roles: userData.roles,
+      })).save())._id);
+
+    } catch (err) {
+
+      // Sniff for username & email collisions
+      if (err instanceof mongoose.mongo.MongoServerError &&
+          err.code == '11000' &&
+          err['keyPattern'] &&
+          ('username' in err['keyPattern'] || 'email' in err['keyPattern'])) 
+      {
+        // Either the username or email collided
+        if ('username' in err['keyPattern']) {
+          throw new Error(UserService.Errors.Username.Conflict)
+        } else {
+          throw new Error(UserService.Errors.Email.Conflict)
+        }
+
+      } else {
+        // Unhandled error, rethrow
+        throw err;
+      }
+      
+    }
+  }
+
+  /**
+   * Updates the identified user with the given user data
+   * @param userIdentity identifies the user to be updated
+   * @param userData the changes to patch into the user
+   * @returns the updated user data
+   * @throws if no user data was changed
+   */
+  async updateUser (userIdentity: IdentifyUserDTO, userData: UpdateUserRequestDTO): Promise<void> {
+    if (!isIdentifyUserDTO(userIdentity) || !isUpdateUserRequestDTO(userData)) {
+      throw new Error(UserService.Errors.MalformedRequest);
+    }
+
+    let modifiedCount = 0;
+
+    try {
+
+      if (typeof userIdentity === 'string') {
+        // Update user identified by id
+        modifiedCount = (await User.updateOne({ _id: stringToObjectId(userIdentity) }, {
+          username: userData.username,
+          email: userData.email,
+          password: userData.password,
+          roles: userData.roles,
+        })).modifiedCount;
+      } else {
+        // Update user identified by username or email
+        modifiedCount = (await User.updateOne(userIdentity, {
+          username: userData.username,
+          email: userData.email,
+          password: userData.password,
+          roles: userData.roles,
+        })).modifiedCount;
+      }
+
+    } catch (err) {
+
+      // Sniff for username & email collisions
+      if (err instanceof mongoose.mongo.MongoServerError &&
+        err.code == '11000' &&
+        err['keyPattern'] &&
+        ('username' in err['keyPattern'] || 'email' in err['keyPattern'])) 
+      {
+        // Either the username or email collided
+        if ('username' in err['keyPattern']) {
+          throw new Error(UserService.Errors.Username.Conflict)
+        } else {
+          throw new Error(UserService.Errors.Email.Conflict)
+        }
+
+      } else {
+        // Unhandler error, rethrow
+        throw err;
+      }
+    }
+
+    if (modifiedCount > 1) {
+      // serious problem should be logged to metrics and the server should take itself offline
+      logger.fatal(`FATAL: More than 1 user modified by updateUser`);
+      throw new Error('Server very unhealthy');
+    }
+
+    if (modifiedCount === 0) {
+      throw new Error(UserService.Errors.UserNotFound);
+    }
   }
 
   /**
@@ -109,18 +274,28 @@ class UserService {
    * @throws if the no user was deleted
    */
   async deleteUser (userIdentity: IdentifyUserDTO | string): Promise<void> {
+    if (!isIdentifyUserDTO(userIdentity)) {
+      throw new Error(UserService.Errors.MalformedRequest);
+    }
+
+    let deletedCount = 0;
+
     if (typeof userIdentity === 'string') {
-      const deleted = await User.findByIdAndDelete(stringToObjectId(userIdentity));
-      if (!deleted) {
-        throw new Error(UserService.Errors.UserNotFound);
-      }
-    } else if ('username' in userIdentity || 'email' in userIdentity) {
-      const deleted = await User.findOneAndDelete(userIdentity);
-      if (!deleted) {
-        throw new Error(UserService.Errors.UserNotFound);
-      }
+      // Delete user identified by id
+      deletedCount = (await User.deleteOne({ _id: stringToObjectId(userIdentity) })).deletedCount;
     } else {
+      // Delete user identified by username or email
+      deletedCount = (await User.deleteOne(userIdentity)).deletedCount;
+    }
+
+    if (deletedCount === 0) {
       throw new Error(UserService.Errors.UserNotFound);
+    }
+
+    if (deletedCount > 1) {
+      // More than 1 user deleted, a very serious error
+      logger.fatal(`FATAL: More than 1 user deleted by deleteUser`);
+      throw new Error('Server very unhealthy');
     }
   }
   
@@ -131,12 +306,17 @@ class UserService {
    * @throws if the user is not found
    */
   async getUser (userIdentity: IdentifyUserDTO): Promise<GetUserResponseDTO | null> {
-    // I happen to like non-nested tuples. I understand that nested tuples become a mess
-    // but I personally find this more readable than if statements, so long as they are 
-    // 1-deep & neatly arranged like this.
-    const user = await ((typeof userIdentity === 'string') 
-      ? User.findById(stringToObjectId(userIdentity)) 
-      : User.findOne(userIdentity));
+    if (!isIdentifyUserDTO(userIdentity)) {
+      throw new Error(UserService.Errors.MalformedRequest);
+    }
+
+    let user: IUser | null = null;
+
+    if (typeof userIdentity === 'string') {
+      user = await User.findById(stringToObjectId(userIdentity));
+    } else {
+      user = await User.findOne(userIdentity);
+    }
 
     if (user) {
       return userToGetUserResponseDTO(user);
@@ -153,13 +333,17 @@ class UserService {
    * @throws If the user does not exist or if the password is incorrect
    */
   async getUserWithCredentials (userIdentity: IdentifyUserDTO, password: string): Promise<GetUserResponseDTO> {
-    // I happen to like non-nested tuples. I understand that nested tuples become a mess
-    // but I personally find this more readable than if statements, so long as they are 
-    // 1-deep & neatly arranged like this.
-    // You can disagree. But look at how neat & tidy this is when separated onto new lines.
-    const user = await ((typeof userIdentity === 'string') 
-      ? User.findById(stringToObjectId(userIdentity)) 
-      : User.findOne(userIdentity));
+    if (!isIdentifyUserDTO(userIdentity)) {
+      throw new Error(UserService.Errors.MalformedRequest);
+    }
+
+    let user: IUser | null = null;
+
+    if (typeof userIdentity === 'string') {
+      user = await User.findById(stringToObjectId(userIdentity));
+    } else {
+      user = await User.findOne(userIdentity);
+    }
 
     // Note: There is a potential timing-attack present here
     // We will respond faster when no user is found compared to when a user is found
@@ -178,36 +362,6 @@ class UserService {
 
     // Treat invalid password the same as not-found to make brute forcing more tedious
     throw new Error(UserService.Errors.UserNotFound);
-  }
-
-  /**
-   * Updates the identified user with the given user data
-   * @param userIdentity identifies the user to be updated
-   * @param userData the changes to patch into the user
-   * @returns the updated user data
-   * @throws if no user data was changed
-   */
-  async updateUser (userIdentity: IdentifyUserDTO, userData: UpdateUserRequestDTO): Promise<GetUserResponseDTO> {
-    if (typeof userIdentity === 'string') {
-      const result = await User.findByIdAndUpdate(stringToObjectId(userIdentity), {
-        username: userData.username,
-        email: userData.email,
-        password: userData.password,
-        roles: userData.roles,
-      });
-      if (result) {
-        return userToGetUserResponseDTO(result);
-      } else {
-        throw new Error(UserService.Errors.UserNotFound);
-      }
-    } else {
-      const result = await User.findOneAndUpdate(userIdentity, userData);
-      if (result) {
-        return userToGetUserResponseDTO(result);
-      } else {
-        throw new Error(UserService.Errors.UserNotFound);
-      }
-    }
   }
 };
 

@@ -142,7 +142,7 @@ UserSchema.pre('save', async function(next) {
 
 // findByIdAndUpdate is equivalent to findOneAndUpdate({ _id: id } ...
 // so both findBy_AndUpdate are handled here
-UserSchema.pre( 'findOneAndUpdate', async function (next) {
+UserSchema.pre([ 'findOneAndUpdate', 'updateOne' ], async function (next) {
   const update = this.getUpdate();
 
   if (update && 'password' in update && update['password'] !== undefined) {

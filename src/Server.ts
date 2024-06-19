@@ -45,11 +45,10 @@ const Server = async (config: Config) => {
           } else {
             // the server has finished closing
             logger.info('Stopped server')
-            logger.info('Stopping mongoose client...');
             try {
               await mongooseClient.disconnect();
             } catch (err) {
-              logger.warning(`Failed to disconnect mongoose client: ${err}`);
+              logger.warning(`Failed to disconnect: ${err}`);
             } finally {
               resolve();
             }

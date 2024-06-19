@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from 'express';
-import logger from '../../utilities/logger';
 import getBasicAuthCredentials from 'basic-auth';
 import UserService from '../user/user.service';
 
@@ -23,7 +22,6 @@ export const basicAuth = async (req: Request, res: Response, next: NextFunction)
           // but don't create an access token for the user
         } else {
           // Server error
-          logger.error(`BasicAuth failed with error ${err}`);
           return next(err);
         }
       }
@@ -67,7 +65,6 @@ export const bearerAuth = async (req: Request, res: Response, next: NextFunction
     // If we got here, we did not authenticate the user
     res.status(401).end('Not Authorized');
   } catch (err) {
-    logger.error(`BearerAuth failed with error ${err}`);
     // Failed to decode token or get user
     res.status(401).end('Not Authorized');
   }
@@ -105,7 +102,6 @@ export const adminBearerAuth = async (req: Request, res: Response, next: NextFun
     // If we got here, we did not authenticate the user
     res.status(401).end('Not Authorized');
   } catch (err) {
-    logger.error(`BearerAuth failed with error ${err}`);
     // Failed to decode token or get user
     res.status(401).end('Not Authorized');
   }
@@ -138,7 +134,6 @@ export const accessTokenWithCredentials = async (req: Request, res: Response, ne
       next();
     } else {
       // Server error
-      logger.error(`Auth failed with error ${err}`);
       return next(err);
     }
   }

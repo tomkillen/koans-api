@@ -188,6 +188,7 @@ describe('auth.middleware', () => {
       await bearerAuth(req, res, next);
       expect(res.locals.user).toBeDefined();
       expect(res.locals.user).toHaveProperty('id');
+      expect(res.locals.user?.id).toBeObjectIdHexString();
       expect(res.locals.user).toHaveProperty('username');
       expect(res.locals.user).toHaveProperty('email');
       expect(res.locals.user).not.toHaveProperty('password');
@@ -218,6 +219,7 @@ describe('auth.middleware', () => {
       await bearerAuth(req, res, next);
       expect(res.locals.user).toBeDefined();
       expect(res.locals.user).toHaveProperty('id');
+      expect(res.locals.user?.id).toBeObjectIdHexString();
       expect(res.locals.user).toHaveProperty('username');
       expect(res.locals.user).toHaveProperty('email');
       expect(res.locals.user).not.toHaveProperty('password');
