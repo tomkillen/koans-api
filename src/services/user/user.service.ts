@@ -66,6 +66,7 @@ const userToGetUserResponseDTO = (user: IUser): GetUserResponseDTO => {
     username: user.username,
     email: user.email,
     created: user._id.getTimestamp(),
+    roles: user.roles && user.roles.length > 0 ? user.roles : undefined,
   };
 }
 
@@ -94,7 +95,12 @@ class UserService {
    * @throws if the user could not be created
    */
   async createUser (userData: CreateUserRequestDTO): Promise<string> {
-    return objectIdToString((await (await User.create(userData)).save())._id);
+    return objectIdToString((await (await User.create({
+      username: userData.username,
+      email: userData.email,
+      password: userData.password,
+      roles: userData.roles,
+    })).save())._id);
   }
 
   /**
@@ -183,7 +189,12 @@ class UserService {
    */
   async updateUser (userIdentity: IdentifyUserDTO, userData: UpdateUserRequestDTO): Promise<GetUserResponseDTO> {
     if (typeof userIdentity === 'string') {
-      const result = await User.findByIdAndUpdate(stringToObjectId(userIdentity), userData);
+      const result = await User.findByIdAndUpdate(stringToObjectId(userIdentity), {
+        username: userData.username,
+        email: userData.email,
+        password: userData.password,
+        roles: userData.roles,
+      });
       if (result) {
         return userToGetUserResponseDTO(result);
       } else {

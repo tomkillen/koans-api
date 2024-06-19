@@ -56,7 +56,45 @@ export const bearerAuth = async (req: Request, res: Response, next: NextFunction
             email: user.email,
             created: user.created,
             // Restrict roles to those the user owns & that are present in the token
-            roles: user.roles?.filter(role => identity.roles && identity.roles.indexOf(role) >= 0),
+            roles: user.roles,
+          };
+
+          return next();
+        }
+      }
+    }
+
+    // If we got here, we did not authenticate the user
+    res.status(401).send('Not Authorized').end();
+  } catch (err) {
+    logger.error(`BearerAuth failed with error ${err}`);
+    // Failed to decode token or get user
+    res.status(401).send('Not Authorized').end();
+  }
+};
+
+/**
+ * Middleware that writes the current user info to `res.locals.user` based on their Bearer token
+ * and also checks that the user has an Admin role
+ * @example req.headers.authorization = `Bearer <JWT>`
+ * Upon auth failure, `res.locals.user` is not defined & res.status(401).send('Not Authorized) is sent
+ */
+export const adminBearerAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const auth = req.headers.authorization;
+    if (auth && auth.startsWith('Bearer ')) {
+      const token = auth.substring('Bearer '.length);
+      if (token) {
+        const identity = await req.app.authService.getUserIdentity(token);
+        const user = await req.app.userService.getUser(identity.id);
+        if (user && user.roles && user.roles.includes('admin')) {
+          res.locals.user = {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            created: user.created,
+            // Restrict roles to those the user owns & that are present in the token
+            roles: user.roles,
           };
 
           return next();

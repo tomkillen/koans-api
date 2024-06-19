@@ -112,6 +112,10 @@ const UserSchema: Schema<IUser> = new Schema({
       },
     },
   },
+  roles: {
+    type: [String],
+    required: false,
+  }
 });
 
 UserSchema.pre('save', async function(next) {
