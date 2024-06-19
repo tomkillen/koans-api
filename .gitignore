@@ -13,6 +13,9 @@ secrets/*
 node_modules
 .env
 
+# Ignore transient & tmp files
+globalConfig.json
+
 # Don't ignore .keep files
 # Use `.keep` files to preserve project structure in git
 # e.g. we want the `bin` folder to exist in version control so the project
