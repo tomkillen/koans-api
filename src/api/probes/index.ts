@@ -9,13 +9,13 @@ const probes = (): Router => {
     // Subsystems should implement their own health checks so we don't check the health of our 
     // dependencies here, but if we had internal subsystems (i.e. background processes, sidecars)
     // we would also have some mechanism of knowing if they are healthy and including that here
-    res.status(200).send('OK');
+    res.status(200).end('OK');
   });
 
   router.get('/alivez', (_, res) => {
     // Commentary:
     // Alive check should be a very cheap "ping" type operation to check if the server is now running
-    res.status(200).send('OK');
+    res.status(200).end('OK');
   });
 
   return router;

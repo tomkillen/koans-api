@@ -38,11 +38,13 @@ const docs = (): Router => {
       } else {
         res.setHeader('Content-Type', 'text/yaml');
       }
-      res.status(200).send(YAML.stringify(OpenApiSpec, null, 2));
+      res.status(200).end(YAML.stringify(OpenApiSpec, null, 2));
     } else {
       // Default to JSON if YAML is not accepted
+      // I like my OpenAPI spec's to be prettified
+      // so send a prettified string instead of using .json
       res.setHeader('Content-Type', 'application/json');
-      res.status(200).send(JSON.stringify(OpenApiSpec, null, 2));
+      res.status(200).end(JSON.stringify(OpenApiSpec, null, 2));
     }
   });
 

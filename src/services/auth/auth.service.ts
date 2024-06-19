@@ -25,6 +25,10 @@ export type AuthIdentity = {
 };
 
 class AuthService {
+  public static readonly Errors = {
+    UnexpectedIdentity: 'Unexpected identity',
+  };
+
   private readonly userService: UserService;
   private readonly jwt: JWTConfig;
 
@@ -46,7 +50,7 @@ class AuthService {
       typeof payload.sub !== 'string' ||
       (payload.roles && !Array.isArray(payload.roles))
     ) {
-      throw new Error('Unexpected identity');
+      throw new Error(AuthService.Errors.UnexpectedIdentity);
     }
 
     return {

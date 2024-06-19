@@ -1,4 +1,4 @@
-import { Expression, FilterQuery, Mongoose, PipelineStage, SortOrder } from "mongoose";
+import mongoose, { Expression, FilterQuery, Mongoose, PipelineStage, SortOrder } from "mongoose";
 import Activity, { ActivityInfo, IActivity } from "./activity.model";
 import objectIdToString from "../../helpers/objectIdToString";
 import stringToObjectId from "../../helpers/stringToObjectId";
@@ -41,12 +41,13 @@ export type GetActivitiesRequestDTO = {
   sortBy?: ActivitiesSortBy | ActivitiesSortBy[];
 };
 
-export const ActivityServiceErrors = {
-  ActivityNotFound: 'Activity not found',
-  CategoryNotFound: 'Category not found',
-};
-
 class ActivityService {
+  public static readonly Errors = {
+    TitleConflict: 'An activity with that title already exists',
+    ActivityNotFound: 'Activity not found',
+    CategoryNotFound: 'Category not found',
+  };
+
   private readonly db: Mongoose;
 
   constructor(db: Mongoose) {
@@ -60,20 +61,34 @@ class ActivityService {
   }
 
   async createActivity(activityInfo: CreateActivityRequestDTO): Promise<string> {
-    return objectIdToString((await (await Activity.create({
-      title: activityInfo.title,
-      category: activityInfo.category,
-      description: activityInfo.description,
-      duration: activityInfo.duration,
-      difficulty: activityInfo.difficulty,
-      content: activityInfo.content,
-    })).save())._id);
+    try {
+      return objectIdToString((await (await Activity.create({
+        title: activityInfo.title,
+        category: activityInfo.category,
+        description: activityInfo.description,
+        duration: activityInfo.duration,
+        difficulty: activityInfo.difficulty,
+        content: activityInfo.content,
+      })).save())._id);
+    } catch (err) {
+      if (err instanceof mongoose.mongo.MongoServerError &&
+        err.code == '11000' &&
+        err['keyPattern'] &&
+        'title' in err['keyPattern']
+      ) {
+        // This was a title collision, so throw our own error
+        throw new Error(ActivityService.Errors.TitleConflict)
+      } else {
+        // Unhandled error, rethrow
+        throw err;
+      }
+    }
   }
 
   async getActivity(id: string): Promise<GetActivityResponseDTO> {
     const activity = await Activity.findById(stringToObjectId(id));
     if (!activity) {
-      throw new Error(ActivityServiceErrors.ActivityNotFound);
+      throw new Error(ActivityService.Errors.ActivityNotFound);
     } else {
       return this.activityToGetActivityResponseDTO(activity);
     }
@@ -170,21 +185,21 @@ class ActivityService {
       content: activityInfo.content,
     });
     if (result.modifiedCount === 0) {
-      throw new Error(ActivityServiceErrors.ActivityNotFound);
+      throw new Error(ActivityService.Errors.ActivityNotFound);
     }
   }
 
   async deleteActivity(id: string): Promise<void> {
     const result = await Activity.deleteOne(stringToObjectId(id));
     if (result.deletedCount === 0) {
-      throw new Error(ActivityServiceErrors.ActivityNotFound);
+      throw new Error(ActivityService.Errors.ActivityNotFound);
     }
   }
 
   async deleteCategory(category: string): Promise<number> {
     const result = await Activity.deleteMany({ category });
     if (result.deletedCount === 0) {
-      throw new Error(ActivityServiceErrors.CategoryNotFound);
+      throw new Error(ActivityService.Errors.CategoryNotFound);
     }
     return result.deletedCount;
   }
@@ -192,7 +207,7 @@ class ActivityService {
   async renameCategory(oldCategory: string, newCategory: string): Promise<number> {
     const result = await Activity.updateMany({ category: oldCategory }, { category: newCategory });
     if (result.modifiedCount === 0) {
-      throw new Error(ActivityServiceErrors.CategoryNotFound);
+      throw new Error(ActivityService.Errors.CategoryNotFound);
     }
     return result.modifiedCount;
   }

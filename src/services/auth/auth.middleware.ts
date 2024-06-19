@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import logger from '../../utilities/logger';
 import getBasicAuthCredentials from 'basic-auth';
-import { UserServiceErrors } from '../user/user.service';
+import UserService from '../user/user.service';
 
 /**
  * Middleware that writes an access token to `res.locals.accessToken` using basic http auth
@@ -17,7 +17,7 @@ export const basicAuth = async (req: Request, res: Response, next: NextFunction)
         const token = await req.app.authService.getAuthTokenForUser({ username: authInfo.name }, authInfo.pass);
         res.locals.accessToken = token;
       } catch (err) {
-        if (err instanceof Error && err.message === UserServiceErrors.UserNotFound) {
+        if (err instanceof Error && err.message === UserService.Errors.UserNotFound) {
           // User credentials are not valid or user does not exist
           // suppress this error since it is expected when authorization fails
           // but don't create an access token for the user
@@ -39,7 +39,7 @@ export const basicAuth = async (req: Request, res: Response, next: NextFunction)
 /**
  * Middleware that writes the current user info to `res.locals.user` based on their Bearer token
  * @example req.headers.authorization = `Bearer <JWT>`
- * Upon auth failure, `res.locals.user` is not defined & res.status(401).send('Not Authorized) is sent
+ * Upon auth failure, `res.locals.user` is not defined & res.status(401).end('Not Authorized) is sent
  */
 export const bearerAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -65,11 +65,11 @@ export const bearerAuth = async (req: Request, res: Response, next: NextFunction
     }
 
     // If we got here, we did not authenticate the user
-    res.status(401).send('Not Authorized').end();
+    res.status(401).end('Not Authorized');
   } catch (err) {
     logger.error(`BearerAuth failed with error ${err}`);
     // Failed to decode token or get user
-    res.status(401).send('Not Authorized').end();
+    res.status(401).end('Not Authorized');
   }
 };
 
@@ -77,7 +77,7 @@ export const bearerAuth = async (req: Request, res: Response, next: NextFunction
  * Middleware that writes the current user info to `res.locals.user` based on their Bearer token
  * and also checks that the user has an Admin role
  * @example req.headers.authorization = `Bearer <JWT>`
- * Upon auth failure, `res.locals.user` is not defined & res.status(401).send('Not Authorized) is sent
+ * Upon auth failure, `res.locals.user` is not defined & res.status(401).end('Not Authorized) is sent
  */
 export const adminBearerAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -103,11 +103,11 @@ export const adminBearerAuth = async (req: Request, res: Response, next: NextFun
     }
 
     // If we got here, we did not authenticate the user
-    res.status(401).send('Not Authorized').end();
+    res.status(401).end('Not Authorized');
   } catch (err) {
     logger.error(`BearerAuth failed with error ${err}`);
     // Failed to decode token or get user
-    res.status(401).send('Not Authorized').end();
+    res.status(401).end('Not Authorized');
   }
 };
 
@@ -130,7 +130,7 @@ export const accessTokenWithCredentials = async (req: Request, res: Response, ne
     }
     next();
   } catch (err) {
-    if (err instanceof Error && err.message === UserServiceErrors.UserNotFound) {
+    if (err instanceof Error && err.message === UserService.Errors.UserNotFound) {
       // User credentials are not valid or user does not exist
       // suppress this error since it is expected when authorization fails
       // but don't create an access token for the user

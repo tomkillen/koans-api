@@ -53,7 +53,7 @@ const App = async (mongooseClient: Mongoose) => {
 
   // Catch-all not found handler
   app.all('*', (_, res) => {
-    res.status(404).send('Not Found');
+    res.status(404).end('Not Found');
   });
 
   return app;

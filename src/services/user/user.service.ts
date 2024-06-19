@@ -40,21 +40,6 @@ export type GetUserResponseDTO = {
   roles?: Role[];
 };
 
-export const UserServiceErrors = {
-  UserNotFound: 'user not found',
-
-  // Embed User Model errors to be friendly to consumers of this service
-  Username: {
-    Conflict: 'username already in use',
-    ...UserValidationErrors.Username,
-  },
-  Email: {
-    Conflict: 'email already in use',
-    ...UserValidationErrors.Email,
-  },
-  Password: UserValidationErrors.Password,
-};
-
 /**
  * Simple utility to convert a User model to a GetUserDTO
  * @param user the user model
@@ -71,6 +56,21 @@ const userToGetUserResponseDTO = (user: IUser): GetUserResponseDTO => {
 }
 
 class UserService {
+  public static readonly Errors = {
+    UserNotFound: 'user not found',
+  
+    // Embed User Model errors to be friendly to consumers of this service
+    Username: {
+      Conflict: 'username already in use',
+      ...UserValidationErrors.Username,
+    },
+    Email: {
+      Conflict: 'email already in use',
+      ...UserValidationErrors.Email,
+    },
+    Password: UserValidationErrors.Password,
+  };
+
   private readonly db: Mongoose;
 
   /**
@@ -112,15 +112,15 @@ class UserService {
     if (typeof userIdentity === 'string') {
       const deleted = await User.findByIdAndDelete(stringToObjectId(userIdentity));
       if (!deleted) {
-        throw new Error(UserServiceErrors.UserNotFound);
+        throw new Error(UserService.Errors.UserNotFound);
       }
     } else if ('username' in userIdentity || 'email' in userIdentity) {
       const deleted = await User.findOneAndDelete(userIdentity);
       if (!deleted) {
-        throw new Error(UserServiceErrors.UserNotFound);
+        throw new Error(UserService.Errors.UserNotFound);
       }
     } else {
-      throw new Error(UserServiceErrors.UserNotFound);
+      throw new Error(UserService.Errors.UserNotFound);
     }
   }
   
@@ -177,7 +177,7 @@ class UserService {
     }
 
     // Treat invalid password the same as not-found to make brute forcing more tedious
-    throw new Error(UserServiceErrors.UserNotFound);
+    throw new Error(UserService.Errors.UserNotFound);
   }
 
   /**
@@ -198,14 +198,14 @@ class UserService {
       if (result) {
         return userToGetUserResponseDTO(result);
       } else {
-        throw new Error(UserServiceErrors.UserNotFound);
+        throw new Error(UserService.Errors.UserNotFound);
       }
     } else {
       const result = await User.findOneAndUpdate(userIdentity, userData);
       if (result) {
         return userToGetUserResponseDTO(result);
       } else {
-        throw new Error(UserServiceErrors.UserNotFound);
+        throw new Error(UserService.Errors.UserNotFound);
       }
     }
   }

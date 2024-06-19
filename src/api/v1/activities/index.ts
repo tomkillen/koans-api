@@ -1,10 +1,12 @@
 import { NextFunction, Request, Response, Router, json } from "express";
 import { adminBearerAuth, bearerAuth } from "../../../services/auth/auth.middleware";
 import { Schema, checkSchema, header, matchedData, validationResult } from "express-validator";
-import { ActivitiesSortByKey } from "../../../services/activity/activity.service";
+import ActivityService, { ActivitiesSortByKey, CreateActivityRequestDTO } from "../../../services/activity/activity.service";
 import { SortOrder } from "mongoose";
 import activity from "./{id}";
 import logger from "../../../utilities/logger";
+import { Difficulty, getDifficultyValue } from "../../../services/activity/activity.difficulty";
+import isDifficultyValidator from "../../../validators/isDifficultyValidator";
 
 // Validation schema used for GET /activities
 const getActivitiesRequestSchema: Schema = {
@@ -41,11 +43,8 @@ const getActivitiesRequestSchema: Schema = {
   },
   difficulty: {
     in: 'query',
-    isIn: {
-      options: [
-        { isInt: { min: 1 } },
-        [ 'easy', 'medium', 'difficult', 'challenging', 'extreme' ],
-      ],
+    custom: {
+      options: isDifficultyValidator,
     },
     optional: true,
   },
@@ -82,7 +81,8 @@ const getActivitiesRequestSchema: Schema = {
   }
 };
 
-const createActivityRequestSchema: Schema = {
+// Validation schema used for POST /activities
+const postActivitiesRequestSchema: Schema = {
   title: {
     in: 'body',
     exists: true,
@@ -110,11 +110,8 @@ const createActivityRequestSchema: Schema = {
   difficulty: {
     in: 'body',
     exists: true,
-    isIn: {
-      options: [
-        { isInt: { min: 1, max: 5 } },
-        [ 'easy', 'medium', 'difficult', 'challenging', 'extreme' ],
-      ],
+    custom: {
+      options: isDifficultyValidator,
     },
   },
   duration: {
@@ -128,26 +125,6 @@ const createActivityRequestSchema: Schema = {
     toInt: true,
   },
 };
-
-// These should be promoted into the Activity service
-type Difficulty = 'easy' | 'medium' | 'difficult' | 'challenging' | 'extreme';
-const Difficulties: Record<Difficulty, number> = {
-  easy: 1,
-  medium: 2,
-  difficult: 3,
-  challenging: 4,
-  extreme: 5,
-};
-
-/**
- * Helper function that converts a difficulty string or number to a difficulty number
- */
-const getDifficulty = (difficulty: number | Difficulty): number => {
-  if (typeof difficulty === 'number') {
-    return difficulty;
-  }
-  return Difficulties[difficulty];
-}
 
 /**
  * Creates router for /activities
@@ -170,10 +147,10 @@ const activities = (): Router => {
     header('authorization'),
     bearerAuth,
     checkSchema(getActivitiesRequestSchema),
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: Request, res: Response) => {
       const result = validationResult(req);
       if (!result.isEmpty()) {
-        return res.status(400).send('Bad Request').end(); 
+        return res.status(400).end('Bad Request'); 
       }
       const filter = matchedData<{
         page?: number;
@@ -181,7 +158,7 @@ const activities = (): Router => {
         query?: string,
         category?: string | string[],
         duration?: number;
-        difficulty?: number | Difficulty;
+        difficulty?: Difficulty;
         sort?: ActivitiesSortByKey;
         order?: SortOrder;
         completed?: boolean;
@@ -193,7 +170,7 @@ const activities = (): Router => {
         searchTerm: filter.query,
         category: filter.category,
         duration: filter.duration ? { min: filter.duration } : undefined,
-        difficulty: filter.difficulty ? { min: getDifficulty(filter.difficulty) } : undefined,
+        difficulty: filter.difficulty ? { min: getDifficultyValue(filter.difficulty) } : undefined,
         sortBy: (filter.sort || filter.order) ? {
           key: filter.sort ?? 'title',
           direction: filter.order ?? 'asc',
@@ -201,7 +178,6 @@ const activities = (): Router => {
       });
 
       res.status(200).json(searchResult).end();
-      next();
     },
   );
 
@@ -218,39 +194,56 @@ const activities = (): Router => {
     header('authorization'),
     adminBearerAuth,
     json(),
-    checkSchema(createActivityRequestSchema),
+    checkSchema(postActivitiesRequestSchema),
     async (req: Request, res: Response, next: NextFunction) => {
-      const result = validationResult(req);
-      if (!result.isEmpty()) {
-        logger.debug(`Validation errors creating activity: ${JSON.stringify(result.array(), null, 2)}`)
-        return res.status(400).send('Bad Request').end(); 
+      const checkDataValidation = validationResult(req);
+      
+      // Check data validation results
+      if (!checkDataValidation.isEmpty()) {
+        return res.status(400).end('Bad Request'); 
       }
-      const data = matchedData<{
-        title: string;
-        category: string;
-        description: string;
-        content: string;
-        duration: number;
-        difficulty: number | Difficulty;
-      }>(req);
+
+      // Check user has authority to perform admin actions
+      if (!res.locals.user || !res.locals.user.roles || res.locals.user.roles.indexOf('admin') < 0) {
+        return res.status(401).end('Not Authorized');
+      }
 
       try {
-        const id = await req.app.activityService.createActivity({
+        // We could be fancy and type this as
+        // Omit<CreateActivityRequestDTO, 'difficulty'> & { difficulty: Difficulty }
+        // but then it becomes unreadable
+        const data = matchedData<{
+          title: string;
+          category: string;
+          description: string;
+          content: string;
+          duration: number;
+          difficulty: Difficulty;
+        }>(req);
+
+        // Be explicit about which fields we want to copy into the DTO
+        // to help avoid unwanted data being injected
+        // That's why a helper function isn't being used
+        const dto: CreateActivityRequestDTO = {
           title: data.title,
           category: data.category,
           description: data.description,
           content: data.content,
           duration: data.duration,
-          difficulty: getDifficulty(data.difficulty),
-        });
-  
-        res.send(201).json({ id }).end();
-      } catch (err) {
-        logger.warning(`Error creating activity: ${err}: \n${JSON.stringify(err, null, 2)}`);
-        next(err);
-      }
+          difficulty: getDifficultyValue(data.difficulty),
+        };
 
-      next();
+        const id = await req.app.activityService.createActivity(dto);
+  
+        res.status(201).json({ id }).end();
+      } catch (err) {
+        if (err instanceof Error && err.message === ActivityService.Errors.TitleConflict) {
+          res.status(409).end(ActivityService.Errors.TitleConflict);
+        } else {
+          logger.warning(`Error creating activity: ${err}: \n${JSON.stringify(err, null, 2)}`);
+          return next(err);
+        }
+      }
     },
   )
 

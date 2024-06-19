@@ -239,6 +239,9 @@ components:
           description: Provide a detailed description of the activity, including steps. 
             Can be very long. Several paragraphs is ideal.
           minLength: 1
+          examples:
+          - Going to the spa is very refreshing. Take a day off work, sleep in, have a healthy
+            breakfast and then go visit a spa.
     CreateActivityResponse:
       type: object
       required:
@@ -247,6 +250,56 @@ components:
         id:
           type: string
           description: Identifier for the created activity
+    UpdateActivityRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          description: The title of this activity, which must be unique among other activities
+          minLength: 1
+          examples:
+          - A spa treatment
+        category:
+          type: string
+          description: Categories this activity
+          minLength: 1
+          examples:
+          - Relaxation
+        description:
+          type: string
+          description: Summarize the activity, roughly 1-3 sentences
+          minLength: 1
+          examples:
+          - Take some time, unwind, let the heat seep in.
+        duration:
+          type: integer
+          description: Estimate the duration of the activity, expressed in seconds
+          minimum: 0
+          examples:
+          - 7200
+        difficulty:
+          description: Indicate the level of challenge this activity represents
+          examples:
+          - easy
+          oneOf:
+          - type: string
+            enum:
+            - easy
+            - medium
+            - difficult
+            - challenging
+            - extreme
+          - type: integer
+            minimum: 1
+            maximum: 5
+        content:
+          type: string
+          description: Provide a detailed description of the activity, including steps. 
+            Can be very long. Several paragraphs is ideal.
+          minLength: 1
+          examples:
+          - Going to the spa is very refreshing. Take a day off work, sleep in, have a healthy
+            breakfast and then go visit a spa.
     SearchActivitiesResults:
       type: object
       required:
@@ -476,8 +529,25 @@ paths:
           description: Bad Request
         '404':
           description: Not Found
+    patch:
+      summary: Updates the activity. Requires the logged in user to be an administrator.
+      tags:
+      - admin
+      security:
+        - bearerAuth: []
+      response:
+        '204':
+          description: Activity updated
+        '400':
+          description: Malformed activity data
+        '401':
+          description: Not Authorized
+        '404':
+          description: Activity not found
+        '409':
+          description: Conflict. Activity titles must be unique.
     delete:
-      summary: Deletes the specified activity
+      summary: Deletes the activity. Requires the logged in user to be an administrator.
       tags:
       - admin
       security:

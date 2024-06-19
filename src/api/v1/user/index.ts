@@ -2,7 +2,7 @@ import { Router, json } from "express";
 import { body, header, matchedData, validationResult } from "express-validator";
 import { bearerAuth } from "../../../services/auth/auth.middleware";
 import logger from "../../../utilities/logger";
-import { UserServiceErrors } from "../../../services/user/user.service";
+import UserService, { CreateUserRequestDTO, UpdateUserRequestDTO } from "../../../services/user/user.service";
 
 /**
  * Creates router for /user
@@ -25,9 +25,9 @@ const user = (): Router => {
           email: res.locals.user.email,
           created: res.locals.user.created,
           roles: res.locals.user.roles,
-        });
+        }).end();
       } else {
-        res.status(401).send('Not Authorized').end();
+        res.status(401).end('Not Authorized');
       }
     },
   );
@@ -46,7 +46,7 @@ const user = (): Router => {
     (req, res, next) => {
       const validationErrors = validationResult(req);
       if (!validationErrors.isEmpty()) {
-        res.status(401).send('You are already logged in').end();
+        res.status(401).end('You are already logged in');
       } else {
         next();
       }
@@ -58,7 +58,7 @@ const user = (): Router => {
     (req, res, next) => {
       const validationErrors = validationResult(req);
       if (!validationErrors.isEmpty()) {
-        res.status(400).send('Malformed Request').end();
+        res.status(400).end('Malformed Request');
       } else {
         next();
       }
@@ -73,18 +73,22 @@ const user = (): Router => {
       try {
         // Ensure user does not already exist with this username and email
         if (await req.app.userService.getUser({ username: userData.username }) !== null) {
-          return res.status(409).send('User already exists').end();
+          return res.status(409).end('User already exists');
         }
         if (await req.app.userService.getUser({ email: userData.email }) !== null) {
-          return res.status(409).send('User already exists').end();
+          return res.status(409).end('User already exists');
         }
 
-        // Create the user
-        const id = await req.app.userService.createUser({
+        // Be explicit about which fields we copy to the DTO
+        // to help prevent unwanted data being injected
+        const dto: CreateUserRequestDTO = {
           username: userData.username,
           email: userData.email,
           password: userData.password
-        });
+        };
+
+        // Create the user
+        const id = await req.app.userService.createUser(dto);
 
         // Authorize the user that was just created (login upon create)
         const access_token = await req.app.authService.getAuthTokenForUser(id, userData.password);
@@ -104,59 +108,80 @@ const user = (): Router => {
     header('authorization'),
     bearerAuth,
     json(),
+    // Very simply schema so we can run the middleware directly
+    // instead of building a schema object
     body('username').isString().optional(),
     body('email').isEmail().optional(),
     body('password').isString().optional(),
-    async (req, res) => {
-      if (res.locals.user) {
-        const userData = matchedData<{ 
-          username?: string;
-          email?: string;
-          password?: string;
-        }>(req);
-        if (userData.username || userData.email || userData.password) {
-          try {
-            await req.app.userService.updateUser(res.locals.user.id, {
-              username: userData.username,
-              email: userData.email,
-              password: userData.password,
-            });
-          } catch (err) {
-            if (err instanceof Error && (
-              err.message === UserServiceErrors.Username.Conflict ||
-              err.message === UserServiceErrors.Email.Conflict
-            )) {
-              res.status(409).send('Conflict').end();
-            } else {
-              logger.error(`Error patching user ${err}`);
-              res.status(500).send('Server error').end();
-            }
+    async (req, res, next) => {
+      // No user is logged in
+      if (!res.locals.user) {
+        return res.status(401).end('Not Authorized');
+      }
+
+      const data = matchedData<{ 
+        username?: string;
+        email?: string;
+        password?: string;
+      }>(req);
+      if (data.username || data.email || data.password) {
+        try {
+
+          const dto: UpdateUserRequestDTO = {};
+          
+          if (data.username && data.username !== res.locals.user.username)
+            dto.username = data.username;
+          if (data.email && data.email !== res.locals.user.email)
+            dto.email = data.email;
+          // Can't compare to current password without hashing, so just let it through
+          // to avoid paying hashing cost twice
+          if (data.password)
+            dto.password = data.password;
+
+          await req.app.userService.updateUser(res.locals.user.id, dto);
+          return res.status(204).end('User updated');
+        } catch (err) {
+          if (err instanceof Error && (
+            err.message === UserService.Errors.Username.Conflict ||
+            err.message === UserService.Errors.Email.Conflict
+          )) {
+            return res.status(409).end('Conflict');
+          } else {
+            logger.error(`Error patching user ${err}`);
+            return next(err);
           }
         }
-        res.status(204).end();
-      } else {
-        res.status(401).send('Not Authorized').end();
       }
     },
   );
 
   // DELETE /user
   // Deletes the current user
+  // Responses
+  //  - 204: Deleted
+  //  - 401: Not Authorized (not logged in)
+  //  - 404: User not found
   router.delete(
     path,
     header('authorization'),
     bearerAuth,
-    async (req, res) => {
-      if (res.locals.user) {
-        try {
-          await req.app.userService.deleteUser(res.locals.user.id);
-          res.status(204).end();
-        } catch (err) {
+    async (req, res, next) => {
+      if (!res.locals.user) {
+        // No user is logged in
+        return res.status(401).end('Not Authorized');
+      }
+
+      try {
+        await req.app.userService.deleteUser(res.locals.user.id);
+        return res.status(204).end('User deleted');
+      } catch (err) {
+        if (err instanceof Error && err.message === UserService.Errors.UserNotFound) {
+          return res.status(404).end('User not found');
+        } else {
+          // Unhandled error
           logger.error(`Failed to delete user ${res.locals.user.id}`);
-          res.status(500).send('Internal Server Error').end();
+          next(err);
         }
-      } else {
-        res.status(401).send('Not Authorized').end();
       }
     },
   );
