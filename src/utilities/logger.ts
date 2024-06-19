@@ -8,6 +8,14 @@
 const logger = {
 
   /**
+   * debug log that can accept a format argument
+   * See [`util.format()`](https://nodejs.org/docs/latest-v20.x/api/util.html#utilformatformat-args) for more information.
+   * @example `logger.debug('count: %d', 5);` outputs "count: 5"
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  debug: (...data: any[]) => console.log(...data),
+
+  /**
    * trace log that can accept a format argument
    * See [`util.format()`](https://nodejs.org/docs/latest-v20.x/api/util.html#utilformatformat-args) for more information.
    * @example `logger.trace('count: %d', 5);` outputs "count: 5"

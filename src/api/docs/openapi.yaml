@@ -185,6 +185,68 @@ components:
           type: string
           examples:
           - Content can be very long, often many paragraphs
+    CreateActivityRequest:
+      type: object
+      required:
+      - title
+      - category
+      - description
+      - duration
+      - difficulty
+      - content
+      properties:
+        title:
+          type: string
+          description: The title of this activity, which must be unique among other activities
+          minLength: 1
+          examples:
+          - A spa treatment
+        category:
+          type: string
+          description: Categories this activity
+          minLength: 1
+          examples:
+          - Relaxation
+        description:
+          type: string
+          description: Summarize the activity, roughly 1-3 sentences
+          minLength: 1
+          examples:
+          - Take some time, unwind, let the heat seep in.
+        duration:
+          type: integer
+          description: Estimate the duration of the activity, expressed in seconds
+          minimum: 0
+          examples:
+          - 7200
+        difficulty:
+          description: Indicate the level of challenge this activity represents
+          examples:
+          - easy
+          oneOf:
+          - type: string
+            enum:
+            - easy
+            - medium
+            - difficult
+            - challenging
+            - extreme
+          - type: integer
+            minimum: 1
+            maximum: 5
+        content:
+          type: string
+          description: Provide a detailed description of the activity, including steps. 
+            Can be very long. Several paragraphs is ideal.
+          minLength: 1
+    CreateActivityResponse:
+      type: object
+      required:
+      - id
+      properties:
+        id:
+          type: string
+          description: Identifier for the created activity
     SearchActivitiesResults:
       type: object
       required:
@@ -282,8 +344,6 @@ components:
       properties:
         id:
           type: string
-          examples:
-          - 1234
           description: users id
         access_token:
           type: string
@@ -361,6 +421,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SearchActivitiesResults'
+        '400':
+          description: Malformed Request
+        '401':
+          description: Not Authorized
+    post:
+      summary: creates a new activity
+      tags:
+        - admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        description: Provide the information that defines the activity
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateActivityRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateActivityResponse'
+        '400':
+          description: missing or malformed data
+        '401':
+          description: Not Authorized
+        '409':
+          description: Activity title conflicts with another activity
   /activities/{id}:
     get:
       summary: Get information about an activity

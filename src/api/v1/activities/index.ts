@@ -1,12 +1,13 @@
-import { Request, Response, Router } from "express";
-import { bearerAuth } from "../../../services/auth/auth.middleware";
+import { NextFunction, Request, Response, Router, json } from "express";
+import { adminBearerAuth, bearerAuth } from "../../../services/auth/auth.middleware";
 import { Schema, checkSchema, header, matchedData, validationResult } from "express-validator";
 import { ActivitiesSortByKey } from "../../../services/activity/activity.service";
 import { SortOrder } from "mongoose";
 import activity from "./{id}";
+import logger from "../../../utilities/logger";
 
 // Validation schema used for GET /activities
-const queryActivitiesSchema: Schema = {
+const getActivitiesRequestSchema: Schema = {
   page: {
     in: 'query',
     isInt: {
@@ -81,6 +82,53 @@ const queryActivitiesSchema: Schema = {
   }
 };
 
+const createActivityRequestSchema: Schema = {
+  title: {
+    in: 'body',
+    exists: true,
+    isString: true,
+    isLength: { options: { min: 1 } },
+  },
+  category: {
+    in: 'body',
+    exists: true,
+    isString: true,
+    isLength: { options: { min: 1 } },
+  },
+  description: {
+    in: 'body',
+    exists: true,
+    isString: true,
+    isLength: { options: { min: 1 } },
+  },
+  content: {
+    in: 'body',
+    exists: true,
+    isString: true,
+    isLength: { options: { min: 1 } },
+  },
+  difficulty: {
+    in: 'body',
+    exists: true,
+    isIn: {
+      options: [
+        { isInt: { min: 1, max: 5 } },
+        [ 'easy', 'medium', 'difficult', 'challenging', 'extreme' ],
+      ],
+    },
+  },
+  duration: {
+    in: 'body',
+    exists: true,
+    isInt: {
+      options: {
+        min: 0,
+      }
+    },
+    toInt: true,
+  },
+};
+
 // These should be promoted into the Activity service
 type Difficulty = 'easy' | 'medium' | 'difficult' | 'challenging' | 'extreme';
 const Difficulties: Record<Difficulty, number> = {
@@ -113,11 +161,16 @@ const activities = (): Router => {
 
   // GET /activities
   // Supports filtering and searching available activities
+  // Requires user to be signed in
+  // Responses:
+  //  - 200: OK => { GetActivitiesResponseDTO }
+  //  - 400: Bad Request => text
+  //  - 401: Not Authorized => text
   router.get(path,
     header('authorization'),
     bearerAuth,
-    checkSchema(queryActivitiesSchema),
-    async (req: Request, res: Response) => {
+    checkSchema(getActivitiesRequestSchema),
+    async (req: Request, res: Response, next: NextFunction) => {
       const result = validationResult(req);
       if (!result.isEmpty()) {
         return res.status(400).send('Bad Request').end(); 
@@ -148,8 +201,58 @@ const activities = (): Router => {
       });
 
       res.status(200).json(searchResult).end();
+      next();
     },
   );
+
+  // POST /activities
+  // Creates a new activity
+  // Requires user to be signed in as admin
+  // Responses:
+  //  - 201: Created => string id of the created activity
+  //  - 400: Missing or malformed data => text
+  //  - 401: Not authorized (not signed in or not admin) => text
+  //  - 409: Conflict (title already in use) => text
+  router.post(
+    path,
+    header('authorization'),
+    adminBearerAuth,
+    json(),
+    checkSchema(createActivityRequestSchema),
+    async (req: Request, res: Response, next: NextFunction) => {
+      const result = validationResult(req);
+      if (!result.isEmpty()) {
+        logger.debug(`Validation errors creating activity: ${JSON.stringify(result.array(), null, 2)}`)
+        return res.status(400).send('Bad Request').end(); 
+      }
+      const data = matchedData<{
+        title: string;
+        category: string;
+        description: string;
+        content: string;
+        duration: number;
+        difficulty: number | Difficulty;
+      }>(req);
+
+      try {
+        const id = await req.app.activityService.createActivity({
+          title: data.title,
+          category: data.category,
+          description: data.description,
+          content: data.content,
+          duration: data.duration,
+          difficulty: getDifficulty(data.difficulty),
+        });
+  
+        res.send(201).json({ id }).end();
+      } catch (err) {
+        logger.warning(`Error creating activity: ${err}: \n${JSON.stringify(err, null, 2)}`);
+        next(err);
+      }
+
+      next();
+    },
+  )
 
   return router;
 };
