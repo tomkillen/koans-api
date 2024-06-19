@@ -3,7 +3,6 @@ import Activity, { ActivityInfo, IActivity } from "./activity.model";
 import objectIdToString from "../../helpers/objectIdToString";
 import stringToObjectId from "../../helpers/stringToObjectId";
 import { NumberOrRange, numberOrRangeToNumberFilter, sortOrder, textSearchFromSearchString } from "../../helpers/mongoQuery";
-import logger from "../../utilities/logger";
 
 export type ActivitiesSortByKey = 'created' | 'title' | 'category' | 'duration' | 'difficulty';
 export type ActivitiesSortBy = {

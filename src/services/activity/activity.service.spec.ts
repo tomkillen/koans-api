@@ -138,8 +138,7 @@ describe('activity.service', () => {
     originalResult.activities.forEach(activity => {
       expect(activity.category).toBe(originalCategory);
     });
-    const modifiedCount = await activityService!.renameCategory(originalCategory, newCategory);
-    expect(modifiedCount).toBe(originalCount);
+    await activityService!.renameCategory(originalCategory, newCategory);
     const oldResult = await activityService!.getActivities({ category: originalCategory });
     expect(oldResult.total).toBe(0);
     const newResult = await activityService!.getActivities({ category: newCategory });

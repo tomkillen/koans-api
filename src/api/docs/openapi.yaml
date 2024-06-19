@@ -318,6 +318,15 @@ components:
           examples:
           - Going to the spa is very refreshing. Take a day off work, sleep in, have a healthy
             breakfast and then go visit a spa.
+    UpdateCategoryRequest:
+      type: object
+      properties:
+        newName:
+          type: string
+          description: The new name to give this category
+          minLength: 1
+          examples:
+          - Meditation
     SearchActivitiesResults:
       type: object
       required:
@@ -576,6 +585,12 @@ paths:
       - admin
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            scehma:
+              $ref: '#/components/schemas/UpdateActivityRequest'
       response:
         '204':
           description: Activity updated
@@ -675,6 +690,91 @@ paths:
           description: Bad Request
         '401':
           description: Not Authorized
+  /categories/{name}:
+    get:
+      summary: Get the activities within a category
+      tags:
+      - categories
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: name
+          description: name of the category
+          schema:
+            type: string
+          required: true
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/query'
+        - $ref: '#/components/parameters/duration'
+        - $ref: '#/components/parameters/difficulty'
+        - $ref: '#/components/parameters/sort'
+        - $ref: '#/components/parameters/order'
+        - $ref: '#/components/parameters/completed'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchActivitiesResults'
+        '400':
+          description: Malformed Request
+        '401':
+          description: Not Authorized
+        '404':
+          description: Not found
+    patch:
+      summary: Admins can rename a category
+      tags:
+      - admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: name
+          description: name of the category
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            scehma:
+              $ref: '#/components/schemas/UpdateCategoryRequest'
+      responses:
+        '204':
+          description: Category updated
+        '400':
+          description: Bad request
+        '401':
+          description: Not authorized
+        '404':
+          description: Not found
+    delete:
+      summary: admins can delete a category and all activities within it
+      tags:
+      - admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: name
+          description: name of the category
+          schema:
+            type: string
+          required: true
+      responses:
+        '204':
+          description: Category deleted
+        '400':
+          description: Bad request
+        '401':
+          description: Not authorized
+        '404':
+          description: Not found
   /user:
     get:
       summary: get the current users information

@@ -2,6 +2,7 @@ import { Response, Request, Router } from "express";
 import { bearerAuth } from "../../../services/auth/auth.middleware";
 import { Schema, checkSchema, matchedData, validationResult } from "express-validator";
 import { SortOrder } from "mongoose";
+import category from "./[name]";
 
 const getCategoriesSchema: Schema = {
   page: {
@@ -35,6 +36,9 @@ const getCategoriesSchema: Schema = {
 const categories = (): Router => {
   const router = Router();
   const path = '/categories';
+
+  // add routes for /categories/:name
+  router.use(category());
 
   // GET /v1/categories
   // Responses:
