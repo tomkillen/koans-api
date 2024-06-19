@@ -3,7 +3,6 @@ import { bearerAuth } from "../../../services/auth/auth.middleware";
 import { Schema, checkSchema, header, matchedData, validationResult } from "express-validator";
 import { ActivitiesSortByKey } from "../../../services/activity/activity.service";
 import { SortOrder } from "mongoose";
-import logger from "../../../utilities/logger";
 import activity from "./{id}";
 
 const queryActivitiesSchema: Schema = {

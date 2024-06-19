@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { bearerAuth } from "../../../../services/auth/auth.middleware";
-import { matchedData, oneOf, param, validationResult } from "express-validator";
+import { matchedData, param, validationResult } from "express-validator";
 import { ActivityServiceErrors } from "../../../../services/activity/activity.service";
 import logger from "../../../../utilities/logger";
 

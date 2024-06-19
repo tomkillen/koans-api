@@ -1,5 +1,4 @@
 import { describe, expect, test } from "@jest/globals";
-import mongoose from "mongoose";
 
 // Decoded looks like
 // {"alg":"HS256","typ":"JWT"}{"sub":"6672b6614e46aee1dfbb93dd","roles":["admin"],"iat":1718793825,"exp":1718822625,"aud":"koans.example.com","iss":"api.koans.example.com"}

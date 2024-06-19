@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import supertest from "supertest";
 import App from "../App";

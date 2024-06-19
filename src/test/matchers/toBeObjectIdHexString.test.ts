@@ -36,12 +36,12 @@ describe('toBeObjectId', () => {
 
   test('number that is a valid hex string but incorrect type is not an objectId hex string', () => {
     // if the following were a string, it WOULD be valid
-    expect(667227221368411478556985).not.toBeObjectIdHexString();
+    expect(667227256985).not.toBeObjectIdHexString();
   });
 
   test('number as string that is a valid hex string but not correct type is an objectId hex string', () => {
     // Test the previous number but as a string and it should pass
-    expect('667227221368411478556985').toBeObjectIdHexString();
+    expect('667227256985').toBeObjectIdHexString();
   });
 
   test('actual objectIds are not a valid objectId hex string', () => {
