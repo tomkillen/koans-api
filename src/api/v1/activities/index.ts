@@ -5,6 +5,7 @@ import { ActivitiesSortByKey } from "../../../services/activity/activity.service
 import { SortOrder } from "mongoose";
 import activity from "./{id}";
 
+// Validation schema used for GET /activities
 const queryActivitiesSchema: Schema = {
   page: {
     in: 'query',
@@ -80,6 +81,7 @@ const queryActivitiesSchema: Schema = {
   }
 };
 
+// These should be promoted into the Activity service
 type Difficulty = 'easy' | 'medium' | 'difficult' | 'challenging' | 'extreme';
 const Difficulties: Record<Difficulty, number> = {
   easy: 1,

@@ -55,7 +55,16 @@ const docs = (): Router => {
   router.use(
     '/api-docs/swagger',
     SwaggerUI.serve,
-    SwaggerUI.setup(OpenApiSpec),
+    SwaggerUI.setup(
+      // swaggerDoc
+      OpenApiSpec,
+      // SwaggerUiOptions
+      undefined,
+      // SwaggerOptions
+      {
+        persistAuthorization: true,
+      }
+    ),
   );
   return router;
 }

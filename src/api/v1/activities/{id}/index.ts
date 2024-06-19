@@ -11,6 +11,7 @@ const activity = (): Router => {
   const router = Router();
   const path = '/activities/:id';
 
+  // GET /activities/:id
   router.get(
     path,
     bearerAuth,
