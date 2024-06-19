@@ -199,7 +199,6 @@ describe('auth.middleware', () => {
       expect(res.send).not.toHaveBeenCalled();
       expect(res.end).not.toHaveBeenCalled();
       regularUser.id = res.locals.user?.id!;
-      console.log('regular user', regularUser.accessToken);
     });
 
     test('admin user cannot authorize as admin (bearer auth)', async () => {
@@ -230,7 +229,6 @@ describe('auth.middleware', () => {
       expect(res.status).not.toHaveBeenCalled();
       expect(res.send).not.toHaveBeenCalled();
       expect(res.end).not.toHaveBeenCalled();
-      console.log('admin user', adminUser.accessToken);
       adminUser.id = res.locals.user?.id!;
     });
   });

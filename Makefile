@@ -64,7 +64,7 @@ endif
 # - `make clean-all` - execute all cleans
 
 # Do everything required to setup & run the app, including initializing the current working environment
-.PHONY: start
+.PHONY: start lint test
 start: setup-env docker-compose-build-nocache docker-compose-up
 
 # Similar to start, but more light-weight. Assume the environment is already setup
@@ -150,22 +150,22 @@ e2e: ; # Not implemented
 
 # Create & start the stack
 .PHONY: docker-compose-up
-docker-compose-up: docker-compose
+docker-compose-up: docker-compose lint test
 	$(DOCKER_COMPOSE) up
 
 # Build the stack
 .PHONY: docker-compose-build
-docker-compose-build:
+docker-compose-build: docker-compose lint test
 	$(DOCKER_COMPOSE) build
 
 # Build the stack without cache
 .PHONY: docker-compose-build-nocache
-docker-compose-build-nocache:
+docker-compose-build-nocache: docker-compose lint test
 	$(DOCKER_COMPOSE) build --no-cache
 
 # Start the stack
 .PHONY: docker-compose-start
-docker-compose-start: docker-compose
+docker-compose-start: docker-compose lint test
 	$(DOCKER_COMPOSE) start
 
 # Stops the stack
@@ -180,7 +180,7 @@ docker-compose-down: docker-compose
 
 # Build a new docker image
 .PHONY: docker-build
-docker-build: check-stage-env test
+docker-build: check-stage-env lint test
 	docker build $(DOCKER_BUILD_FLAGS) \
 		--progress=plain \
 		-t $(IMG) \
@@ -253,7 +253,7 @@ endif
 # we could also run an in-memory mongo database but I like this better
 # since it's closer to the real thing
 .PHONY: dev-start
-dev-start: test
+dev-start: lint test
 	$(MAKE) dev-mongo-up
 	npm run start:dev:watch || true
 
