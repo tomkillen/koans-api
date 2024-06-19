@@ -109,7 +109,6 @@ describe('e2e activities', () => {
 
   test('can get each activity (/v1/activities/{id}', async () => {
     await Promise.all(activities.map(async activity => {
-      console.log(`Fetching /v1/activities/${activity.id}`);
       const res = await supertest(app).get(`/v1/activities/${activity.id}`).set('Authorization', `Bearer ${user.accessToken}`);
       expect(res.statusCode).toBe(200);
       expect(res.body).toHaveProperty('id');
