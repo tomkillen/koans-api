@@ -368,6 +368,13 @@ paths:
       - activity
       security:
       - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          description: id of the activity to get
+          schema:
+            type: string
+          required: true
       responses:
         '200':
           description: OK

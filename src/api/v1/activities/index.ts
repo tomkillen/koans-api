@@ -4,6 +4,7 @@ import { Schema, checkSchema, header, matchedData, validationResult } from "expr
 import { ActivitiesSortByKey } from "../../../services/activity/activity.service";
 import { SortOrder } from "mongoose";
 import logger from "../../../utilities/logger";
+import activity from "./{id}";
 
 const queryActivitiesSchema: Schema = {
   page: {
@@ -105,6 +106,9 @@ const getDifficulty = (difficulty: number | Difficulty): number => {
 const activities = (): Router => {
   const router = Router();
   const path = '/activities';
+
+  // add /activities/{id}
+  router.use(activity());
 
   // GET /activities
   // Supports filtering and searching available activities

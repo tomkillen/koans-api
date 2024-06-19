@@ -25,33 +25,33 @@ describe('e2e create user & login', () => {
     mongooseClient = null;
   });
 
-  test('can create test user', async () => {
+  test('can create test user (POST /v1/user)', async () => {
     const res = await supertest(app).post('/v1/user').send(user);
     expect(res.statusCode).toBe(201);
     expect(res.body).toHaveProperty('id');
     expect(res.body).toHaveProperty('access_token');
   });
 
-  test('can basic auth test user', async () => {
+  test('can basic auth test user (GET /v1/auth)', async () => {
     const res = await supertest(app).get('/v1/auth').send().set('Authorization', `Basic ${Buffer.from(`${user.username}:${user.password}`).toString('base64')}`);
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('access_token');
   });
 
-  test('can simple auth test user with username', async () => {
+  test('can simple auth test user with username (POST /v1/auth)', async () => {
     const res = await supertest(app).post('/v1/auth').send({ username: user.username, password: user.password });
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('access_token');
   });
 
-  test('can simple auth test user with email', async () => {
+  test('can simple auth test user with email (POST /v1/auth)', async () => {
     const res = await supertest(app).post('/v1/auth').send({ username: user.username, password: user.password });
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('access_token');
     user.accessToken = res.body.access_token;
   });
 
-  test('can get user information', async () => {
+  test('can get user information (GET /v1/user)', async () => {
     const res = await supertest(app).get('/v1/user').send().set('Authorization', `Bearer ${user.accessToken}`);
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('id');
@@ -62,7 +62,7 @@ describe('e2e create user & login', () => {
     expect(res.body.email).toBe(user.email);
   });
 
-  test('can change username', async () => {
+  test('can change username (/v1/user)', async () => {
     const res = await supertest(app).patch('/v1/user').send({ username: 'test user 2'}).set('Authorization', `Bearer ${user.accessToken}`);
     expect(res.statusCode).toBe(204);
 
@@ -77,7 +77,7 @@ describe('e2e create user & login', () => {
     user.username = get.body.username;
   });
 
-  test('can change email', async () => {
+  test('can change email (PATCH /v1/user)', async () => {
     const res = await supertest(app).patch('/v1/user').send({ email: 'testuser2@example.com'}).set('Authorization', `Bearer ${user.accessToken}`);
     expect(res.statusCode).toBe(204);
 
@@ -92,33 +92,33 @@ describe('e2e create user & login', () => {
     user.email = get.body.email;
   });
 
-  test('can change password', async () => {
+  test('can change password (PATCH /v1/user)', async () => {
     const newPassword = 'test user 2 password';
     const res = await supertest(app).patch('/v1/user').send({ password: newPassword}).set('Authorization', `Bearer ${user.accessToken}`);
     expect(res.statusCode).toBe(204);
     user.password = newPassword;
   });
 
-  test('can basic auth with new password', async () => {
+  test('can basic auth with new password (GET /v1/auth)', async () => {
     const res = await supertest(app).get('/v1/auth').send().set('Authorization', `Basic ${Buffer.from(`${user.username}:${user.password}`).toString('base64')}`);
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('access_token');
   });
 
-  test('can simple auth test user with new username', async () => {
+  test('can simple auth test user with new username (POST /v1/auth)', async () => {
     const res = await supertest(app).post('/v1/auth').send({ username: user.username, password: user.password });
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('access_token');
   });
 
-  test('can simple auth test user with new email', async () => {
+  test('can simple auth test user with new email (POST /v1/auth)', async () => {
     const res = await supertest(app).post('/v1/auth').send({ username: user.username, password: user.password });
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('access_token');
     user.accessToken = res.body.access_token;
   });
 
-  test('can get user information with new access token from new password', async () => {
+  test('can get user information with new access token from new password (GET /v1/user)', async () => {
     const res = await supertest(app).get('/v1/user').send().set('Authorization', `Bearer ${user.accessToken}`);
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('id');

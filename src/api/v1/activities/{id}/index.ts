@@ -2,13 +2,14 @@ import { Router } from "express";
 import { bearerAuth } from "../../../../services/auth/auth.middleware";
 import { matchedData, oneOf, param, validationResult } from "express-validator";
 import { ActivityServiceErrors } from "../../../../services/activity/activity.service";
+import logger from "../../../../utilities/logger";
 
 /**
  * Actions relating to a specific Activity
  */
 const activity = (): Router => {
   const router = Router();
-  const path = '/activity/:id';
+  const path = '/activities/:id';
 
   router.get(
     path,
@@ -20,6 +21,7 @@ const activity = (): Router => {
       }
 
       if (!validationResult(req).isEmpty()) {
+        logger.info(JSON.stringify(validationResult(req).array()));
         return res.status(400).send('Bad Request').end();
       }
 
