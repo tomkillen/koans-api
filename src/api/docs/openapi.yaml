@@ -16,6 +16,8 @@ tags:
   description: User & profile management
 - name: activities
   description: Search & manage activities
+- name: categories
+  description: Browse categories
 components:
   securitySchemes:
     basicAuth:
@@ -185,6 +187,22 @@ components:
           type: string
           examples:
           - Content can be very long, often many paragraphs
+    Category:
+      type: object
+      required:
+      - name
+      - count
+      properties:
+        name:
+          type: string
+          description: Category name
+          examples:
+          - relaxation
+        count:
+          type: integer
+          description: Number of activities in this category
+          examples:
+          - 10
     CreateActivityRequest:
       type: object
       required:
@@ -328,6 +346,34 @@ components:
           minimum: 0
         activities:
           $ref: '#/components/schemas/Activity'
+    SearchCategoriesResults:
+      type: object
+      required:
+      - page
+      - pageSize
+      - total
+      - categories
+      properties:
+        page:
+          description: The current page of results
+          type: integer
+          examples:
+          - 1
+          minimum: 1
+        pageSize:
+          description: How many results per page
+          type: integer
+          examples:
+          - 10
+          minimum: 1
+        total:
+          description: The total number of results available
+          type: integer
+          examples:
+          - 100
+          minimum: 0
+        categories:
+          $ref: '#/components/schemas/Category'
     LoginWithId:
       type: object
       required:
@@ -605,6 +651,28 @@ paths:
                   access_token:
                     type: string
                     description: access token that can be used for Bearer authentication
+        '401':
+          description: Not Authorized
+  /categories:
+    get:
+      summary: List available categories
+      tags:
+      - categories
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/order'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchCategoriesResults'
+        '400':
+          description: Bad Request
         '401':
           description: Not Authorized
   /user:

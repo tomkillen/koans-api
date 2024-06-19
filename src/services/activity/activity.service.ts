@@ -3,6 +3,7 @@ import Activity, { ActivityInfo, IActivity } from "./activity.model";
 import objectIdToString from "../../helpers/objectIdToString";
 import stringToObjectId from "../../helpers/stringToObjectId";
 import { NumberOrRange, numberOrRangeToNumberFilter, sortOrder, textSearchFromSearchString } from "../../helpers/mongoQuery";
+import logger from "../../utilities/logger";
 
 export type ActivitiesSortByKey = 'created' | 'title' | 'category' | 'duration' | 'difficulty';
 export type ActivitiesSortBy = {
@@ -39,6 +40,28 @@ export type GetActivitiesRequestDTO = {
   pageSize?: number;
   /** Sorting, nested from first as highest sort order (0) to Nth */
   sortBy?: ActivitiesSortBy | ActivitiesSortBy[];
+};
+export type GetCategoryResponseDTO = {
+  /** Name of the category */
+  name: string;
+  /** Number of activities in the category */
+  count: number;
+};
+export type GetCategoriesRequestDTO = {
+  /** Pagination */
+  page?: number;
+  pageSize?: number;
+  /** Sorting */
+  order?: SortOrder;
+};
+export type GetCategoriesResponseDTO = {
+  /** List of activities found by the GetCategoriesRequestDTO */
+  categories: GetCategoryResponseDTO[],
+  /** Pagination */
+  page: number;
+  pageSize: number;
+  /** Total number of results available */
+  total: number;
 };
 
 class ActivityService {
@@ -172,6 +195,37 @@ class ActivityService {
       pageSize,
       total: result[0]?.metadata[0]?.total ?? 0,
       activities: result[0]?.data.map(this.activityToGetActivityResponseDTO) ?? [],
+    };
+  }
+
+  async getCategories(query?: GetCategoriesRequestDTO): Promise<GetCategoriesResponseDTO> {
+    const page = query?.page ?? 1;
+    const pageSize = query?.pageSize ?? 10;
+    const result = await Activity.aggregate<{
+      total: number,
+      categories: { _id: string, count: number }[],
+    }>([
+      { $group: { _id: "$category", count: { $sum: 1 } } },
+      { $facet: {
+          total: [ { $group: { _id: null, total: { $sum: 1 } } } ],
+          result: [
+            { $sort: { _id: sortOrder(query?.order ?? 1) } },
+            { $skip: (page - 1) * pageSize },
+            { $limit: pageSize },
+          ],
+        },
+      },
+      { $project: { total: { $arrayElemAt: ["$total.total", 0] }, categories: "$result" } }
+    ]);
+
+    return {
+      page,
+      pageSize,
+      total: result[0]?.total,
+      categories: result[0]?.categories.map(category => ({
+        name: category._id,
+        count: category.count,
+      })) ?? [],
     };
   }
 

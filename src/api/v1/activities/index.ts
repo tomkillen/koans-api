@@ -147,6 +147,12 @@ const activities = (): Router => {
     bearerAuth,
     checkSchema(getActivitiesRequestSchema),
     async (req: Request, res: Response) => {
+      // Check authorization
+      if (!res.locals.user) {
+        return res.status(401).end('Not Authorized');
+      }
+
+      // Check schema validation
       const result = validationResult(req);
       if (!result.isEmpty()) {
         return res.status(400).end('Bad Request'); 

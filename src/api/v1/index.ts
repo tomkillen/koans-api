@@ -2,6 +2,7 @@ import { Router } from "express";
 import user from "./user";
 import auth from "./auth";
 import activities from "./activities";
+import categories from "./categories";
 
 /**
  * Creates a router for API v1
@@ -17,6 +18,9 @@ const v1 = (): Router => {
 
   // routes for '/activities'
   router.use(activities());
+
+  // routes for '/categories'
+  router.use(categories());
   
   return router;
 };
