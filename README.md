@@ -27,11 +27,31 @@ make dev-start
 docker compose up
 ```
 
+`make start` will first run tests (`make test`) and linting (`make lint`), then build the docker stack, and then launch the docker containers.
+
+After a few moments the app will be available
+
 OpenAPI specification available at [./src/api/docs/openapi.yaml](src/api/docs/openapi.yaml) (Command + Click)
 
 The stack will then launch and the API will be available at <http://localhost/v1/>
 
-Swagger available at <http://localhost/swagger>
+Swagger available at <http://localhost/api-docs/swagger>
+
+## Test users
+
+Upon boot, the database will be populated with some test data, including the following users:
+
+- **Admin user**:
+  - username: `admin`, password: `admin`
+- **Test Users**:
+  - username: `first`, password: `first`
+  - username: `second`, password: `second`
+  - username: `username`, password: `password`
+
+### Tests user
+
+**Username**: admin
+**Password**: admin
 
 ## Prerequisites
 
@@ -173,6 +193,6 @@ Some folders are intended to be empty in version control, e.g. the contents of `
 
 ### API
 
-Swagger UI available at <http://localhost/swagger>
+Swagger UI available at <http://localhost/api-docs/swagger>
 
-OpenAPI spec for v1 available at <http://localhost/v1/openapi.json> and <http://localhost/v1/openapi.yaml>
+OpenAPI spec for v1 available at <http://localhost/v1/api-docs>

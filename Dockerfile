@@ -29,6 +29,7 @@ RUN npm run build
 FROM node:22.3.0 AS production
 COPY --from=build /app/package*.json ./app/
 COPY --from=build /app/dist /app/dist
+COPY --from=build /app/src/api/docs/openapi.yaml /app/dist/api/docs/openapi.yaml
 WORKDIR /app
 RUN npm ci --omit=dev
 

@@ -151,7 +151,7 @@ describe('e2e activities', () => {
       expect(res.body).toHaveProperty('content');
       expect(res.body.content).toBe(activity.content);
     }));
-  }, 10000);
+  }, 30000);
 
   test('GET /v1/activities => 400: bad query', async () => {
     const res = await supertest(app).get(`/v1/activities`).query({

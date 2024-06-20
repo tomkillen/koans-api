@@ -6,6 +6,7 @@
 !tsconfig.json
 !src
 !typings
+!README.md
 
 # Don't ignore these files which are important for Docker
 !.dockeringore
