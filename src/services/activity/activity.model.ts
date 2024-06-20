@@ -1,4 +1,5 @@
 import { Model, Document, Schema, model, Types } from "mongoose";
+import UserActivity from "../useractivity/useractivity.model";
 
 const ActivityValidationErrors = {
   Title: {
@@ -42,7 +43,11 @@ export type IActivity = {
   _id: Types.ObjectId;
 } & Document & ActivityInfo;
 
-const ActivitySchema = new Schema<IActivity>({
+type IActivityModel = {
+  deleteByCategory: (category: string) => Promise<number>;
+} & Model<IActivity>;
+
+const ActivitySchema = new Schema<IActivity, IActivityModel>({
   title: {
     type: String,
     required: [ true, ActivityValidationErrors.Title.Missing ],
@@ -168,10 +173,38 @@ ActivitySchema.index({
   },
 });
 
+// Middleware to handle cascading deletion of UserActivity when deleting an activity by _id
+ActivitySchema.pre('deleteOne', { document: true, query: false }, async function (next) {
+  try {
+    await UserActivity.deleteMany({ userId: this._id });
+    next();
+  } catch (err) {
+    next(new Error(`Error deleting UserActivitiys ${err}`));
+  }
+});
+
+// Middleware to handle cascading deletions of UserActivity when deleting many Activity's by query
+ActivitySchema.pre('deleteMany', { document: true, query: true }, async function (next) {
+  try {
+    const category: string | undefined = this.getFilter()['category'];
+    if (category) {
+      await UserActivity.deleteMany({ category });
+      next();
+    } else {
+      // If we want to deleteMany by other queries or filters, add the support
+      // to also delete UserActivity's
+      next(new Error(`deleteMany Activities only supported by category`));
+    }
+  } catch (err) {
+    next(new Error(`Error deleting UserActivitiys ${err}`));
+  }
+});
+
+
 // schema.index({ 
 //   animal: 'text', color: 'text', pattern: 'text', size: 'text' }, 
 //   {name: 'My text index', weights: {animal: 10, color: 4, pattern: 2, size: 1}})
 
-const Activity: Model<IActivity> = model('Activity', ActivitySchema);
+const Activity: Model<IActivity, IActivityModel> = model('Activity', ActivitySchema);
 
 export default Activity;

@@ -2,6 +2,7 @@ import ActivityService from "../../src/services/activity/activity.service";
 import Role from "../../src/services/auth/auth.roles";
 import AuthService from "../../src/services/auth/auth.service";
 import UserService from "../../src/services/user/user.service"
+import UserActivityService from "../../src/services/useractivity/useractivity.service";
 
 declare global {
   namespace Express {
@@ -11,6 +12,7 @@ declare global {
       userService: UserService;
       authService: AuthService;
       activityService: ActivityService;
+      userActivityService: UserActivityService;
     }
     // Some middleware creates these values in express.response.locals
     // so provide typings here that indicate these values MAY be defined

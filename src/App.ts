@@ -6,6 +6,7 @@ import { Mongoose } from 'mongoose';
 import AuthService from './services/auth/auth.service';
 import ActivityService from './services/activity/activity.service';
 import populateDatabase from './helpers/populateDatabase';
+import UserActivityService from './services/useractivity/useractivity.service';
 
 /**
  * express.Application for the Koans API
@@ -24,12 +25,14 @@ const App = async (mongooseClient: Mongoose) => {
     userService: app.userService,
   });
   app.activityService = new ActivityService(mongooseClient);
+  app.userActivityService = new UserActivityService(mongooseClient);
 
   // Ensure the database is ready for user before starting the server
   // Prevents race conditions with unique inserts before index has been built
   await Promise.all([
     app.userService.prepare(),
     app.activityService.prepare(),
+    app.userActivityService.prepare(),
   ]);
 
   // DEBUG & Demonstration

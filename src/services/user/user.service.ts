@@ -1,9 +1,10 @@
 import mongoose, { Mongoose, isObjectIdOrHexString } from "mongoose";
 import User, { IUser, UserValidationErrors } from "./user.model";
-import objectIdToString from "../../helpers/objectIdToString";
-import stringToObjectId from "../../helpers/stringToObjectId";
+import objectIdToString from "../../helpers/objectIdToHexString";
+import stringToObjectId from "../../helpers/hexStringToObjectId";
 import Role, { isValidRole } from "../auth/auth.roles";
 import logger from "../../utilities/logger";
+import UserActivity from "../useractivity/useractivity.model";
 
 // Request DTO for creating a new user
 export type CreateUserRequestDTO = {
@@ -270,23 +271,20 @@ class UserService {
 
   /**
    * Deletes the user with the given id
-   * @param userIdentity identifies the user to be deleted
+   * @param userIdStr identifies the user to be deleted
    * @throws if the no user was deleted
    */
-  async deleteUser (userIdentity: IdentifyUserDTO | string): Promise<void> {
-    if (!isIdentifyUserDTO(userIdentity)) {
+  async deleteUser (userIdStr: string): Promise<void> {
+    if (typeof userIdStr !== 'string' || !userIdStr) {
       throw new Error(UserService.Errors.MalformedRequest);
     }
 
-    let deletedCount = 0;
+    // Delete user identified by id
+    const userId = stringToObjectId(userIdStr);
+    const deletedCount = (await User.deleteOne({ _id: userId })).deletedCount;
 
-    if (typeof userIdentity === 'string') {
-      // Delete user identified by id
-      deletedCount = (await User.deleteOne({ _id: stringToObjectId(userIdentity) })).deletedCount;
-    } else {
-      // Delete user identified by username or email
-      deletedCount = (await User.deleteOne(userIdentity)).deletedCount;
-    }
+    // Delete UserActivity records for this user
+    await UserActivity.deleteMany({ userId });
 
     if (deletedCount === 0) {
       throw new Error(UserService.Errors.UserNotFound);

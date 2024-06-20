@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import mongoose from "mongoose";
-import stringToObjectId from "../../helpers/stringToObjectId";
-import objectIdToString from "../../helpers/objectIdToString";
+import stringToObjectId from "../../helpers/hexStringToObjectId";
+import objectIdToString from "../../helpers/objectIdToHexString";
 
 // Commentary:
 // It's important to test our tests!

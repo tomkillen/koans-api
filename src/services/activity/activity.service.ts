@@ -1,8 +1,9 @@
-import mongoose, { Expression, FilterQuery, Mongoose, PipelineStage, SortOrder } from "mongoose";
+import mongoose, { Expression, FilterQuery, Mongoose, PipelineStage, SortOrder, Types } from "mongoose";
 import Activity, { ActivityInfo, IActivity } from "./activity.model";
-import objectIdToString from "../../helpers/objectIdToString";
-import stringToObjectId from "../../helpers/stringToObjectId";
+import objectIdToString from "../../helpers/objectIdToHexString";
+import stringToObjectId from "../../helpers/hexStringToObjectId";
 import { NumberOrRange, numberOrRangeToNumberFilter, sortOrder, textSearchFromSearchString } from "../../helpers/mongoQuery";
+import UserActivity from "../useractivity/useractivity.model";
 
 export type ActivitiesSortByKey = 'created' | 'title' | 'category' | 'duration' | 'difficulty';
 export type ActivitiesSortBy = {
@@ -63,6 +64,19 @@ export type GetCategoriesResponseDTO = {
   total: number;
 };
 
+export const activityToGetActivityResponseDTO = (activity: { _id: Types.ObjectId } & ActivityInfo) => {
+  return {
+    id: objectIdToString(activity._id),
+    created: activity._id.getTimestamp(),
+    title: activity.title,
+    category: activity.category,
+    description: activity.description,
+    duration: activity.duration,
+    difficulty: activity.difficulty,
+    content: activity.content,
+  };
+};
+
 class ActivityService {
   public static readonly Errors = {
     TitleConflict: 'An activity with that title already exists',
@@ -112,7 +126,7 @@ class ActivityService {
     if (!activity) {
       throw new Error(ActivityService.Errors.ActivityNotFound);
     } else {
-      return this.activityToGetActivityResponseDTO(activity);
+      return activityToGetActivityResponseDTO(activity);
     }
   }
 
@@ -193,7 +207,7 @@ class ActivityService {
       page,
       pageSize,
       total: result[0]?.metadata[0]?.total ?? 0,
-      activities: result[0]?.data.map(this.activityToGetActivityResponseDTO) ?? [],
+      activities: result[0]?.data.map(activityToGetActivityResponseDTO) ?? [],
     };
   }
 
@@ -230,14 +244,27 @@ class ActivityService {
 
   async updateActivity(id: string, activityInfo: UpdateActivityRequestDTO): Promise<void> {
     try {
-      const result = await Activity.updateOne({ _id: stringToObjectId(id) }, {
-        title: activityInfo.title,
-        category: activityInfo.category,
-        description: activityInfo.description,
-        duration: activityInfo.duration,
-        difficulty: activityInfo.difficulty,
-        content: activityInfo.content,
-      });
+      const activityId = stringToObjectId(id);
+      const update: Partial<ActivityInfo> = {};
+
+      if (activityInfo.title)
+        update.title = activityInfo.title;
+      if (activityInfo.category)
+        update.category = activityInfo.category;
+      if (activityInfo.description)
+        update.description = activityInfo.description;
+      if (activityInfo.duration)
+        update.duration = activityInfo.duration;
+      if (activityInfo.title)
+        update.difficulty = activityInfo.difficulty;
+      if (activityInfo.content)
+        update.content = activityInfo.content;
+      
+      const result = await Activity.updateOne({ _id: activityId }, update);
+
+      // Update UserActivity records for this Activity
+      await UserActivity.updateMany({ activityId }, update);
+
       if (result.modifiedCount === 0) {
         throw new Error(ActivityService.Errors.ActivityNotFound);
       }
@@ -257,7 +284,12 @@ class ActivityService {
   }
 
   async deleteActivity(id: string): Promise<void> {
-    const result = await Activity.deleteOne({ _id: stringToObjectId(id) });
+    const activityId: Types.ObjectId = stringToObjectId(id);
+    const result = await Activity.deleteOne({ _id: activityId });
+    
+    // Delete UserActivity records for this activity
+    await UserActivity.deleteMany({ activityId });
+
     if (result.deletedCount === 0) {
       throw new Error(ActivityService.Errors.ActivityNotFound);
     }
@@ -265,6 +297,10 @@ class ActivityService {
 
   async deleteCategory(category: string): Promise<number> {
     const result = await Activity.deleteMany({ category });
+
+    // Delete UserActivity records for this category
+    await UserActivity.deleteMany({ category });
+
     if (result.deletedCount === 0) {
       throw new Error(ActivityService.Errors.CategoryNotFound);
     }
@@ -273,24 +309,15 @@ class ActivityService {
 
   async renameCategory(oldCategory: string, newCategory: string): Promise<number> {
     const result = await Activity.updateMany({ category: oldCategory }, { category: newCategory });
+
+    // Update UserActivity records for this category
+    await UserActivity.updateMany({ category: oldCategory }, { category: newCategory });
+
     if (result.modifiedCount === 0) {
       throw new Error(ActivityService.Errors.CategoryNotFound);
     }
     return result.modifiedCount;
   }
-
-  private activityToGetActivityResponseDTO(activity: IActivity) {
-    return {
-      id: objectIdToString(activity._id),
-      created: activity._id.getTimestamp(),
-      title: activity.title,
-      category: activity.category,
-      description: activity.description,
-      duration: activity.duration,
-      difficulty: activity.difficulty,
-      content: activity.content,
-    };
-  };
 }
 
 export default ActivityService;

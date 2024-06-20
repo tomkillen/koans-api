@@ -4,6 +4,7 @@ import { Model, Document, Schema, model, Types } from "mongoose";
 // maybe not "military grade" but it's pretty good
 import bcrypt from 'bcrypt';
 import Role from "../auth/auth.roles";
+import UserActivity from "../useractivity/useractivity.model";
 
 // 10 salt rounds are recommended to stay above GPU cracking capabilities
 // but it comes at a cost. 10 rounds means ~10 hashes per second, whereas 8 
@@ -150,6 +151,16 @@ UserSchema.pre([ 'findOneAndUpdate', 'updateOne' ], async function (next) {
   }
   
   next();
+});
+
+// Middleware to handle cascading deletion of UserActivity when a user is deleted
+UserSchema.pre('deleteOne', { document: true, query: false }, async function (next) {
+  try {
+    await UserActivity.deleteMany({ userId: this._id });
+    next();
+  } catch (err) {
+    next(new Error(`Error deleting UserActivitiys ${err}`));
+  }
 });
 
 UserSchema.methods.comparePassword = function(testPassword: string): Promise<boolean> {

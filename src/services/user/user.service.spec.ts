@@ -286,32 +286,6 @@ describe('user service', () => {
       await userService!.deleteUser(deleteId);
     });
 
-    test('we can delete a user by email', async () => {
-      expect(userService).toBeInstanceOf(UserService);
-      const deleteId = await userService!.createUser({
-        username: 'Will Be Deleted',
-        email: 'willbedeleted@example.com',
-        password: 'password'
-      });
-      expect(deleteId).toBeDefined();
-      expect(typeof deleteId).toBe('string');
-
-      await userService!.deleteUser({ email: 'willbedeleted@example.com' });
-    });
-
-    test('we can delete a user by username', async () => {
-      expect(userService).toBeInstanceOf(UserService);
-      const deleteId = await userService!.createUser({
-        username: 'Will Be Deleted',
-        email: 'willbedeleted@example.com',
-        password: 'password'
-      });
-      expect(deleteId).toBeDefined();
-      expect(typeof deleteId).toBe('string');
-
-      await userService!.deleteUser({ username: 'Will Be Deleted' });
-    });
-
     test('we cannot delete unknown users', () => {
       expect(userService).toBeInstanceOf(UserService);
       expect(userService!.deleteUser('doesnt exist')).rejects.toThrowError();
@@ -320,16 +294,6 @@ describe('user service', () => {
     test('we cannot delete empty ids', () => {
       expect(userService).toBeInstanceOf(UserService);
       expect(userService!.deleteUser('')).rejects.toThrowError();
-    });
-
-    test('we cannot delete empty emails', () => {
-      expect(userService).toBeInstanceOf(UserService);
-      expect(userService!.deleteUser({ email: '' })).rejects.toThrowError();
-    });
-
-    test('we cannot delete empty usernames', () => {
-      expect(userService).toBeInstanceOf(UserService);
-      expect(userService!.deleteUser({ username: '' })).rejects.toThrowError();
     });
 
     test('we cannot delete null ids', () => {
