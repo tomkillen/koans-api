@@ -4,6 +4,7 @@ import { Schema, checkSchema, header, matchedData, param, validationResult } fro
 import ActivityService, { UpdateActivityRequestDTO } from "../../../../services/activity/activity.service";
 import isDifficultyValidator from "../../../../validators/isDifficultyValidator";
 import { Difficulty, getDifficultyValue } from "../../../../services/activity/activity.difficulty";
+import activityCompleted from "./[completed]";
 
 // Validation schema used for PATCH /activities/:id
 const patchActivitiesRequestSchema: Schema = {
@@ -63,6 +64,9 @@ const activity = (): Router => {
   const router = Router();
   const path = '/activities/:id';
 
+  // Routes for /activities/:id/completed
+  router.use(activityCompleted());
+
   // GET /activities/:id
   // Responses:
   //  - 200: OK
@@ -87,7 +91,8 @@ const activity = (): Router => {
       }>(req);
 
       try {
-        const activity = await req.app.activityService.getActivity(id);
+        const completed = await req.app.userActivityService.getUserActivity(res.locals.user.id, id);
+        const activity = completed || await req.app.activityService.getActivity(id);
         return res.status(200).json({
           id: activity.id,
           created: activity.created,
@@ -97,6 +102,7 @@ const activity = (): Router => {
           duration: activity.duration,
           difficulty: activity.difficulty,
           content: activity.content,
+          completed: completed !== null,
         }).end();
       }
       catch (err) {

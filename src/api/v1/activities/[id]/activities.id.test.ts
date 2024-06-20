@@ -33,11 +33,13 @@ describe('/v1/activities/:id', () => {
   const activity = {
     id: '',
     created: '',
+    completed: false,
     ...generateActivity()
   };
   const anotherActivity = {
     id: '',
     created: '',
+    completed: false,
     ...generateActivity()
   };
 

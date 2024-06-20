@@ -1,9 +1,10 @@
 import mongoose, { Expression, FilterQuery, Mongoose, PipelineStage, Types, isObjectIdOrHexString } from "mongoose";
 import UserActivity, { IUserActivity } from "./useractivity.model";
-import { GetActivitiesRequestDTO, GetActivitiesResponseDTO, activityToGetActivityResponseDTO } from "../activity/activity.service";
+import { GetActivitiesRequestDTO, GetActivitiesResponseDTO, GetActivityResponseDTO, activityToGetActivityResponseDTO } from "../activity/activity.service";
 import Activity from "../activity/activity.model";
 import User from "../user/user.model";
 import { numberOrRangeToNumberFilter, sortOrder, textSearchFromSearchString } from "../../helpers/mongoQuery";
+import objectIdToString from "../../helpers/objectIdToHexString";
 
 // Refers to an id type
 // - string => value is an objectId as hex string
@@ -63,10 +64,17 @@ class UserActivityService {
     await UserActivity.init();
   }
 
-  async getUserActivity(userIdentier: Identifier, activityIdentifier: Identifier): Promise<IUserActivity | null> {
+  async getUserActivity(userIdentier: Identifier, activityIdentifier: Identifier): Promise<GetActivityResponseDTO | null> {
     const userId = identifierToObjectId(userIdentier, UserActivityService.Errors.InvalidUserId);
     const activityId = identifierToObjectId(activityIdentifier, UserActivityService.Errors.InvalidActivityId);
-    return await UserActivity.findOne({ userId, activityId });
+    const result = await UserActivity.findOne({ userId, activityId });
+    if (result) {
+      const response = activityToGetActivityResponseDTO(result);
+      response.id = objectIdToString(activityId);
+      return response;
+    }
+
+    return null;
   }
 
   async isActivityComplete(userIdentier: Identifier, activityIdentifier: Identifier): Promise<boolean> {

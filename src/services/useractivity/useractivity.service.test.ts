@@ -8,7 +8,6 @@ import UserActivityService from "./useractivity.service";
 import UserService from "../user/user.service";
 import ActivityService from "../activity/activity.service";
 import generateActivity from "../../helpers/generateActivity";
-import objectIdToString from "../../helpers/objectIdToHexString";
 
 describe('user activity service', () => {
   let mongooseClient: Mongoose | null = null; 
@@ -158,7 +157,7 @@ describe('user activity service', () => {
     const activityA = await activityService.getActivity(activities[idx].id);
     const userActivityA = await userActivityService.getUserActivity(user.id, activities[idx].id);
     expect(userActivityA).toBeDefined();
-    expect(activityA.id).toBe(objectIdToString(userActivityA?.activityId!));
+    expect(activityA.id).toBe(userActivityA?.id);
     expect(activityA.category).toBe(userActivityA?.category);
     expect(activityA.title).toBe(userActivityA?.title);
     expect(activityA.difficulty).toBe(userActivityA?.difficulty);
@@ -169,7 +168,7 @@ describe('user activity service', () => {
     const activityB = await activityService.getActivity(activities[idx].id);
     const userActivityB = await userActivityService.getUserActivity(user.id, activities[idx].id);
     expect(userActivityB).toBeDefined();
-    expect(activityB.id).toBe(objectIdToString(userActivityB?.activityId!));
+    expect(activityB.id).toBe(userActivityB?.id);
     expect(activityB.title).toBe(userActivityB?.title);
     expect(activityB.category).toBe(userActivityB?.category);
     expect(activityB.difficulty).toBe(userActivityB?.difficulty);

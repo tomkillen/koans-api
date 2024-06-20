@@ -187,6 +187,11 @@ components:
           type: string
           examples:
           - Content can be very long, often many paragraphs
+        completed:
+          description: True if the user has completed this activity
+          type: boolean
+          examples:
+          - true
     Category:
       type: object
       required:
@@ -585,13 +590,20 @@ paths:
       - admin
       security:
         - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          description: id of the activity to get
+          schema:
+            type: string
+          required: true
       requestBody:
         required: true
         content:
           application/json:
-            scehma:
+            schema:
               $ref: '#/components/schemas/UpdateActivityRequest'
-      response:
+      responses:
         '204':
           description: Activity updated
         '400':
@@ -608,6 +620,13 @@ paths:
       - admin
       security:
         - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          description: id of the activity to get
+          schema:
+            type: string
+          required: true
       responses:
         '204':
           description: Activity deleted
@@ -617,6 +636,46 @@ paths:
           description: Not Authorized
         '404':
           description: Not Found
+  /activities/{id}/completed:
+    put:
+      summary: sets the completed flag of this activity for the current user
+      tags:
+      - activities
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          description: id of the activity to get
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - completed
+              properties:
+                completed:
+                  type: boolean
+                  description: Is the activity completed for this user
+                  examples:
+                  - true
+                  - false
+      responses:
+        '204':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Not authorized
+        '404':
+          description: Not found
+        '409':
+          description: Already completed / not completed
   /auth:
     get:
       summary: Gets an access token using Basic auth
@@ -742,7 +801,7 @@ paths:
         required: true
         content:
           application/json:
-            scehma:
+            schema:
               $ref: '#/components/schemas/UpdateCategoryRequest'
       responses:
         '204':
